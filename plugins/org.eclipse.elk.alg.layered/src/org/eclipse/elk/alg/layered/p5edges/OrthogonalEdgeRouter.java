@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p5edges;
 
@@ -23,7 +22,8 @@ import org.eclipse.elk.alg.layered.intermediate.IntermediateProcessorStrategy;
 import org.eclipse.elk.alg.layered.options.GraphProperties;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
-import org.eclipse.elk.alg.layered.options.Spacings;
+import org.eclipse.elk.alg.layered.p5edges.orthogonal.OrthogonalRoutingGenerator;
+import org.eclipse.elk.alg.layered.p5edges.orthogonal.RoutingDirection;
 import org.eclipse.elk.core.alg.ILayoutPhase;
 import org.eclipse.elk.core.alg.LayoutProcessorConfiguration;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
@@ -142,9 +142,8 @@ public final class OrthogonalEdgeRouter implements ILayoutPhase<LayeredPhases, L
                 .addBefore(LayeredPhases.P1_CYCLE_BREAKING, IntermediateProcessorStrategy.SELF_LOOP_PREPROCESSOR)
                 .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.SELF_LOOP_POSTPROCESSOR)
                 .before(LayeredPhases.P4_NODE_PLACEMENT)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_PLACER)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_LABEL_PLACER)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_BENDPOINT_CALCULATOR);
+                    .add(IntermediateProcessorStrategy.SELF_LOOP_PORT_RESTORER)
+                    .add(IntermediateProcessorStrategy.SELF_LOOP_ROUTER);
     
     /** additional processor dependencies for graphs with hypernodes. */
     private static final LayoutProcessorConfiguration<LayeredPhases, LGraph> HYPERNODE_PROCESSING_ADDITIONS =
@@ -222,18 +221,16 @@ public final class OrthogonalEdgeRouter implements ILayoutPhase<LayeredPhases, L
         monitor.begin("Orthogonal edge routing", 1);
         
         // Retrieve some generic values
-        Spacings spacings = layeredGraph.getProperty(InternalProperties.SPACINGS);
         double nodeNodeSpacing =
                 layeredGraph.getProperty(LayeredOptions.SPACING_NODE_NODE_BETWEEN_LAYERS).doubleValue();
         double edgeEdgeSpacing =
                 layeredGraph.getProperty(LayeredOptions.SPACING_EDGE_EDGE_BETWEEN_LAYERS).doubleValue();
         double edgeNodeSpacing =
                 layeredGraph.getProperty(LayeredOptions.SPACING_EDGE_NODE_BETWEEN_LAYERS).doubleValue();
-        boolean debug = layeredGraph.getProperty(LayeredOptions.DEBUG_MODE);
         
         // Prepare for iteration!
         OrthogonalRoutingGenerator routingGenerator = new OrthogonalRoutingGenerator(
-                OrthogonalRoutingGenerator.RoutingDirection.WEST_TO_EAST, edgeEdgeSpacing, debug ? "phase5" : null);
+                RoutingDirection.WEST_TO_EAST, edgeEdgeSpacing, "phase5");
         float xpos = 0.0f;
         ListIterator<Layer> layerIter = layeredGraph.getLayers().listIterator();
         Layer leftLayer = null;
@@ -260,7 +257,7 @@ public final class OrthogonalEdgeRouter implements ILayoutPhase<LayeredPhases, L
             
             // Route edges between the two layers
             double startPos = leftLayer == null ? xpos : xpos + edgeNodeSpacing;
-            slotsCount = routingGenerator.routeEdges(layeredGraph, leftLayerNodes, leftLayerIndex,
+            slotsCount = routingGenerator.routeEdges(monitor, layeredGraph, leftLayerNodes, leftLayerIndex,
                     rightLayerNodes, startPos);
             
             boolean isLeftLayerExternal = leftLayer == null || Iterables.all(leftLayerNodes,

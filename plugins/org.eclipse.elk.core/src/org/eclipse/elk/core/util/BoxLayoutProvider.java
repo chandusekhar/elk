@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2009, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.util;
 
@@ -177,8 +176,9 @@ public class BoxLayoutProvider extends AbstractLayoutProvider {
      */
     private void placeBoxes(final List<ElkNode> sortedBoxes, final ElkNode parentNode,
             final double objSpacing, final ElkPadding padding, final boolean expandNodes) {
-        
-        KVector minSize = parentNode.getProperty(BoxLayouterOptions.NODE_SIZE_MINIMUM);
+
+        // Work on a copy of the minimum size to avoid changing the property's value
+        KVector minSize = new KVector(parentNode.getProperty(BoxLayouterOptions.NODE_SIZE_MINIMUM));
         minSize.x = Math.max(minSize.x - padding.getLeft() - padding.getRight(), 0);
         minSize.y = Math.max(minSize.y - padding.getTop() - padding.getBottom(), 0);
         
@@ -326,7 +326,8 @@ public class BoxLayoutProvider extends AbstractLayoutProvider {
     private void placeBoxesGrouping(final ElkNode parentNode,
             final float objSpacing, final ElkPadding padding, final boolean expandNodes) {
         
-        KVector minSize = parentNode.getProperty(BoxLayouterOptions.NODE_SIZE_MINIMUM);
+        // Work on a copy of the minimum size to avoid changing the property's value
+        KVector minSize = new KVector(parentNode.getProperty(BoxLayouterOptions.NODE_SIZE_MINIMUM));
         minSize.x = Math.max(minSize.x - padding.getLeft() - padding.getRight(), 0);
         minSize.y = Math.max(minSize.y - padding.getTop() - padding.getBottom(), 0);
         

@@ -1,9 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 TypeFox GmbH (http://www.typefox.io) and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.graph.text.validation
 
@@ -29,6 +31,7 @@ import org.eclipse.emf.ecore.EObject
 import org.eclipse.xtext.validation.Check
 
 import static org.eclipse.elk.graph.ElkGraphPackage.Literals.*
+import static org.eclipse.elk.graph.text.validation.IssueCodes.*
 
 import static extension org.eclipse.elk.graph.text.ElkGraphTextUtil.*
 import static extension org.eclipse.xtext.EcoreUtil2.*
@@ -115,7 +118,7 @@ class ElkGraphValidator extends AbstractElkGraphValidator {
     private def void checkOptionTarget(LayoutOptionData option, LayoutOptionData.Target... targetTypes) {
         if (!targetTypes.exists[option.targets.contains(it)])
             warning("The layout option '" + option.id + "' is not applicable to " + targetTypes.head.toString.toLowerCase + '.',
-                ELK_PROPERTY_TO_VALUE_MAP_ENTRY__KEY)
+                ELK_PROPERTY_TO_VALUE_MAP_ENTRY__KEY, OPTION_NOT_APPLICABLE)
     }
     
     private def void checkAlgorithmSupport(LayoutOptionData option, ElkGraphElement element) {

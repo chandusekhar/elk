@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.graph.transform;
 
@@ -69,7 +68,7 @@ class ElkGraphLayoutTransferrer {
         ElkNode parentElkNode = (ElkNode) graphOrigin;
         
         // The LNode that represents this graph in the upper hierarchy level, if any
-        LNode parentLNode = (LNode) lgraph.getProperty(InternalProperties.PARENT_LNODE);
+        LNode parentLNode = (LNode) lgraph.getParentNode();
         
         // Get the offset to be added to all coordinates
         KVector offset = new KVector(lgraph.getOffset());
@@ -136,7 +135,7 @@ class ElkGraphLayoutTransferrer {
         
         // Process nested subgraphs
         for (LNode lnode : lgraph.getLayerlessNodes()) {
-            LGraph nestedGraph = lnode.getProperty(InternalProperties.NESTED_LGRAPH);
+            LGraph nestedGraph = lnode.getNestedGraph();
             if (nestedGraph != null) {
                 applyLayout(nestedGraph);
             }
@@ -160,7 +159,7 @@ class ElkGraphLayoutTransferrer {
         
         // Set the node size, if necessary
         if (!elknode.getProperty(LayeredOptions.NODE_SIZE_CONSTRAINTS).isEmpty()
-                || lnode.getProperty(InternalProperties.NESTED_LGRAPH) != null
+                || lnode.getNestedGraph() != null
                 || (lnode.getGraph().getProperty(LayeredOptions.NODE_PLACEMENT_STRATEGY) 
                         == NodePlacementStrategy.NETWORK_SIMPLEX 
                     && NodeFlexibility.getNodeFlexibility(lnode).isFlexibleSizeWhereSpacePermits())) {
@@ -265,6 +264,8 @@ class ElkGraphLayoutTransferrer {
         
         // Give the edge a proper edge section to store routing information
         ElkEdgeSection elkedgeSection = ElkGraphUtil.firstEdgeSection(elkedge, true, true);
+        elkedgeSection.setIncomingShape(elkedge.getSources().get(0));
+        elkedgeSection.setOutgoingShape(elkedge.getTargets().get(0));
         ElkUtil.applyVectorChain(bendPoints, elkedgeSection);
 
         // Apply layout to labels
@@ -319,7 +320,7 @@ class ElkGraphLayoutTransferrer {
             
             while (currentGraph != targetCoordinateSystem) {
                 // The current graph should always have an upper level if we have not reached the target graph yet;
-                LNode representingNode = currentGraph.getProperty(InternalProperties.PARENT_LNODE);
+                LNode representingNode = currentGraph.getParentNode();
                 currentGraph = representingNode.getGraph();
                 
                 result.add(representingNode.getPosition())
@@ -346,7 +347,7 @@ class ElkGraphLayoutTransferrer {
         boolean sizeConstraintsIncludedPortLabels =
                 elknode.getProperty(LayeredOptions.NODE_SIZE_CONSTRAINTS).contains(SizeConstraint.PORT_LABELS);
 
-        if (lgraph.getProperty(InternalProperties.PARENT_LNODE) == null) {
+        if (lgraph.getParentNode() == null) {
             Set<GraphProperties> graphProps = lgraph.getProperty(InternalProperties.GRAPH_PROPERTIES);
             KVector actualGraphSize = lgraph.getActualSize();
             

@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered;
 
@@ -45,7 +44,7 @@ import org.eclipse.elk.core.util.IElkProgressMonitor;
 import org.eclipse.elk.core.util.Pair;
 
 /**
- * The main entry point into KLay Layered. KLay Layered is a layout algorithm after the layered
+ * The main entry point into ELK Layered. ELK Layered is a layout algorithm after the layered
  * layout method proposed by Sugiyama et al. It is structured into five main phases: cycle breaking,
  * layering, crossing minimization, node placement, and edge routing. Before these phases and after
  * the last phase so called intermediate layout processors can be inserted that do some kind of pre
@@ -66,7 +65,7 @@ import org.eclipse.elk.core.util.Pair;
  *   Phase 1   Phase 2   Phase 3   Phase 4   Phase 5
  * </pre>
  *
- * <p>To use KLay Layered to layout a given graph, there are three possibilities depending on the kind
+ * <p>To use ELK Layered to layout a given graph, there are three possibilities depending on the kind
  * of graph that is to be laid out:</p>
  * <ol>
  *   <li>{@link #doLayout(LGraph, IElkProgressMonitor)} computes a layout for the given graph, without
@@ -75,7 +74,7 @@ import org.eclipse.elk.core.util.Pair;
  *     and for its subgraphs, if any. (Subgraphs are attached to nodes through the
  *     {@link InternalProperties#NESTED_LGRAPH} property.)</li>
  *   <li>If you have an {@code ElkNode} instead of an {@code LGraph}, you might want to use
- *     {@link LayeredLayoutProvider#doLayout(org.eclipse.elk.graph.KNode, IElkProgressMonitor)}
+ *     {@link LayeredLayoutProvider#layout(org.eclipse.elk.graph.ElkNode, IElkProgressMonitor)}
  *     instead.</li>
  * </ol>
  * <p>In addition to regular layout runs, this class provides methods for automatic unit testing based
@@ -130,7 +129,7 @@ public final class ElkLayered {
     public void doLayout(final LGraph lgraph, final IElkProgressMonitor monitor) {
         IElkProgressMonitor theMonitor = monitor;
         if (theMonitor == null) {
-            theMonitor = new BasicProgressMonitor(0);
+            theMonitor = new BasicProgressMonitor().withMaxHierarchyLevels(0);
         }
         theMonitor.begin("Layered layout", 1);
 
@@ -174,7 +173,7 @@ public final class ElkLayered {
     public void doCompoundLayout(final LGraph lgraph, final IElkProgressMonitor monitor) {
         IElkProgressMonitor theMonitor = monitor;
         if (theMonitor == null) {
-            theMonitor = new BasicProgressMonitor(0);
+            theMonitor = new BasicProgressMonitor().withMaxHierarchyLevels(0);
         }
         theMonitor.begin("Layered layout", 2); // SUPPRESS CHECKSTYLE MagicNumber
 
@@ -282,7 +281,7 @@ public final class ElkLayered {
             LGraph nextGraph = continueSearchingTheseGraphs.pop();
             for (LNode node : nextGraph.getLayerlessNodes()) {
                 if (hasNestedGraph(node)) {
-                    LGraph nestedGraph = nestedGraphOf(node);
+                    LGraph nestedGraph = node.getNestedGraph();
                     collectedGraphs.push(nestedGraph);
                     continueSearchingTheseGraphs.push(nestedGraph);
                 }
@@ -328,19 +327,11 @@ public final class ElkLayered {
     }
 
     private boolean isRoot(final LGraph graph) {
-        return parentNodeOf(graph) == null;
-    }
-
-    private LNode parentNodeOf(final LGraph graph) {
-        return graph.getProperty(InternalProperties.PARENT_LNODE);
-    }
-
-    private LGraph nestedGraphOf(final LNode node) {
-        return node.getProperty(InternalProperties.NESTED_LGRAPH);
+        return graph.getParentNode() == null;
     }
 
     private boolean hasNestedGraph(final LNode node) {
-        return nestedGraphOf(node) != null;
+        return node.getNestedGraph() != null;
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -518,9 +509,10 @@ public final class ElkLayered {
      */
     private void notifyProcessorReady(final LGraph lgraph, final ILayoutProcessor<?> processor) {
         if (testController != null) {
-            testController.notifyProcessorReady(lgraph, processor);
             if (isRoot(lgraph)) {
                 testController.notifyRootProcessorReady(lgraph, processor);
+            } else {
+                testController.notifyProcessorReady(lgraph, processor);
             }
         }
     }
@@ -531,9 +523,10 @@ public final class ElkLayered {
      */
     private void notifyProcessorFinished(final LGraph lgraph, final ILayoutProcessor<?> processor) {
         if (testController != null) {
-            testController.notifyProcessorFinished(lgraph, processor);
             if (isRoot(lgraph)) {
                 testController.notifyRootProcessorFinished(lgraph, processor);
+            } else {
+                testController.notifyProcessorFinished(lgraph, processor);
             }
         }
     }
@@ -556,17 +549,17 @@ public final class ElkLayered {
         List<ILayoutProcessor<LGraph>> algorithm = lgraph.getProperty(InternalProperties.PROCESSORS);
         float monitorProgress = 1.0f / algorithm.size();
 
-        if (lgraph.getProperty(LayeredOptions.DEBUG_MODE)) {
+        if (monitor.isLoggingEnabled()) {
             // Debug Mode!
             // Print the algorithm configuration and output the whole graph to a file
             // before each slot execution
 
-            System.out.println("ELK Layered uses the following " + algorithm.size() + " modules:");
+            monitor.log("ELK Layered uses the following " + algorithm.size() + " modules:");
             int slot = 0;
             for (ILayoutProcessor<LGraph> processor : algorithm) {
                 // SUPPRESS CHECKSTYLE NEXT MagicNumber
                 String gwtDoesntSupportPrintf = (slot < 10 ? "0" : "") + (slot++);
-                System.out.println("   Slot " + gwtDoesntSupportPrintf + ": " + processor.getClass().getName());
+                monitor.log("   Slot " + gwtDoesntSupportPrintf + ": " + processor.getClass().getName());
             }
 
             // Invoke each layout processor
@@ -577,7 +570,7 @@ public final class ElkLayered {
                 }
                 // Graph debug output
                 // elkjs-exclude-start
-                DebugUtil.writeDebugGraph(lgraph, slotIndex++, processor.getClass().getSimpleName());
+                DebugUtil.logDebugGraph(monitor, lgraph, slotIndex++, processor.getClass().getSimpleName());
                 // elkjs-exclude-end
 
                 notifyProcessorReady(lgraph, processor);
@@ -587,7 +580,7 @@ public final class ElkLayered {
 
             // Graph debug output
             // elkjs-exclude-start
-            DebugUtil.writeDebugGraph(lgraph, slotIndex, "finished");
+            DebugUtil.logDebugGraph(monitor, lgraph, slotIndex, "finished");
             // elkjs-exclude-end
         } else {
             // Invoke each layout processor
@@ -644,7 +637,7 @@ public final class ElkLayered {
      * Afterwards, the border spacing property is reset to 0.
      *
      * <p>Major parts of this method are adapted from
-     * {@link ElkUtil#resizeNode(org.eclipse.elk.graph.KNode, float, float, boolean)}.</p>
+     * {@link ElkUtil#resizeNode(org.eclipse.elk.graph.ElkNode, double, double, boolean, boolean)}.</p>
      *
      * <p>Note: This method doesn't care about labels of compound nodes since those labels are not
      * attached to the graph.</p>

@@ -1,158 +1,116 @@
 /*******************************************************************************
- * Copyright (c) 2018 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2018, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
-import org.eclipse.elk.alg.layered.graph.LGraphUtil;
-import org.eclipse.elk.alg.layered.graph.LLabel;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LPort;
-import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
+import org.eclipse.elk.alg.layered.graph.Layer;
+import org.eclipse.elk.alg.layered.intermediate.loops.SelfLoopHolder;
+import org.eclipse.elk.alg.layered.intermediate.loops.SelfLoopPort;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
-import org.eclipse.elk.alg.layered.p5edges.loops.SelfLoopComponent;
-import org.eclipse.elk.alg.layered.p5edges.loops.SelfLoopLabel;
-import org.eclipse.elk.alg.layered.p5edges.loops.SelfLoopNode;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
-import org.eclipse.elk.core.math.KVector;
+import org.eclipse.elk.core.options.PortConstraints;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
 
-import com.google.common.math.DoubleMath;
-
 /**
- * Finds connected components of self loops and adds them to the {@link InternalProperties#SELFLOOP_COMPONENTS}
- * property of the node.
+ * Finds regular nodes with self loops and preprocesses those loops.
  *
  * <dl>
  *   <dt>Precondition:</dt>
  *     <dd>A layered graph.</dd>
  *   <dt>Postcondition:</dt>
- *     <dd>All ports are grouped into connected {@link SelfLoopComponent}s.</dd>
- *     <dd>The components are added to the {@link InternalProperties#SELFLOOP_COMPONENTS} property of the node.</dd>
- *     <dd>Some ports are removed from the node: all ports only having self loops connected to them.</dd>
+ *     <dd>Each node with self loops has a {@link SelfLoopHolder} created for it and stored under the
+ *         {@link InternalProperties#SELF_LOOP_HOLDER} property.
+ *     <dd>All self loop edges are removed from their ports to not confuse subsequent phases.</dd>
+ *     <dd>Unless port orders are fixed, all ports with only self loop edges connected to them are removed from their
+ *         nodes in order to not confuse subsequent phases.</dd>
  *   <dt>Slots:</dt>
  *     <dd>Before phase 2.</dd>
  *   <dt>Same-slot dependencies:</dt>
  *     <dd>None.</dd>
  * </dl>
  */
-public final class SelfLoopPreProcessor implements ILayoutProcessor<LGraph> {
+public class SelfLoopPreProcessor implements ILayoutProcessor<LGraph> {
 
     @Override
-    public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
-        monitor.begin("Self-Loop pre-processing.", 1);
-        
-        // process all nodes
-        for (final LNode node : layeredGraph.getLayerlessNodes()) {
-            if (node.getType() == NodeType.NORMAL) {
-                // create a self loop node representation
-                SelfLoopNode slNode = new SelfLoopNode(node);
-                node.setProperty(InternalProperties.SELFLOOP_NODE_REPRESENTATION, slNode);
-                
-                // calculate the SelfLoopComponents of the node and save them to it's properties
-                SelfLoopComponent.createSelfLoopComponents(slNode);
-                
-                // pre-process labels
-                preprocessLabels(slNode);
-                
-                // hide the ports which are non useful for the crossing minimization
-                hidePorts(node);
+    public void process(final LGraph graph, final IElkProgressMonitor progressMonitor) {
+        progressMonitor.begin("Self-Loop pre-processing", 1);
+
+        for (LNode lnode : graph.getLayerlessNodes()) {
+            if (SelfLoopHolder.needsSelfLoopProcessing(lnode)) {
+                SelfLoopHolder slHolder = SelfLoopHolder.install(lnode);
+                hideSelfLoops(slHolder);
+                hidePorts(slHolder);
             }
         }
 
-        monitor.done();
+        progressMonitor.done();
     }
-    
-    /** A small number for double approximation. */
-    private static final double EPSILON = 1e-6;
 
     /**
-     * For each component the labels of the contained edges are collected and put together to one label. This joint
-     * label is stored in a SelfLoopLabel.
+     * Hides all self loop edges. These would confuse subsequent phases and are thus simply removed from the graph, to
+     * be restored once edge routing has finished.
      */
-    public void preprocessLabels(final SelfLoopNode slNode) {
-        double labelLabelSpacing = LGraphUtil.getIndividualOrInherited(
-                slNode.getNode(), LayeredOptions.SPACING_LABEL_LABEL);
+    private void hideSelfLoops(final SelfLoopHolder slHolder) {
+        slHolder.getSLHyperLoops().stream()
+            .flatMap(slLoop -> slLoop.getSLEdges().stream())
+            .map(slEdge -> slEdge.getLEdge())
+            .forEach(lEdge -> hideSelfLoop(lEdge));
+    }
+
+    /**
+     * Hides the given edge by removing it from its ports.
+     */
+    private void hideSelfLoop(final LEdge lEdge) {
+        lEdge.setSource(null);
+        lEdge.setTarget(null);
+    }
+
+    /**
+     * Possibly hides all ports whose only incident edges are self loops. This is only done if port constraints are not
+     * at least {@link PortConstraints#FIXED_ORDER}.
+     */
+    private void hidePorts(final SelfLoopHolder slHolder) {
+        if (slHolder.getLNode().getProperty(LayeredOptions.PORT_CONSTRAINTS).isOrderFixed()) {
+            // No need to hide any ports
+            return;
+        }
         
-        for (SelfLoopComponent component : slNode.getSelfLoopComponents()) {
-            // Retrieve all labels attached to edges that belong to this component
-            List<LLabel> labels = component.getConnectedEdges().stream()
-                .flatMap(edge -> edge.getEdge().getLabels().stream())
-                .sorted(new Comparator<LLabel>() {
-                    @Override
-                    public int compare(final LLabel o1, final LLabel o2) {
-                        return DoubleMath.fuzzyCompare(o1.getSize().x, o2.getSize().x, EPSILON);
+        for (SelfLoopPort slPort : slHolder.getSLPortMap().values()) {
+            if (slPort.hadOnlySelfLoops()) {
+                // Hide the port
+                LPort lPort = slPort.getLPort();
+                lPort.setNode(null);
+                
+                // Remember that we actually did so
+                slPort.setHidden(true);
+                slHolder.setPortsHidden(true);
+                
+                // Remove external port dummy this port belongs to, if any (#352)
+                LNode dummy = lPort.getProperty(InternalProperties.PORT_DUMMY);
+                if (dummy != null) {
+                    Layer layer = dummy.getLayer();
+                    if (layer == null) {
+                        dummy.getGraph().getLayerlessNodes().remove(dummy);
+                    } else {
+                        layer.getNodes().remove(dummy);
+                        if (layer.getNodes().isEmpty()) {
+                            layer.getGraph().getLayers().remove(layer);
+                        }
                     }
-                })
-                .collect(Collectors.toList());
-
-            // If there are no labels, there is no need for us to do anything
-            if (labels.isEmpty()) {
-                continue;
-            }
-            
-            // Since the labels will be stacked above one another, we calculate the width and the height required
-            double maxWidth = 0.0;
-            double height = 0.0;
-            for (LLabel label : labels) {
-                KVector size = label.getSize();
-                maxWidth = Math.max(size.x, maxWidth);
-                height += size.y;
-            }
-            
-            // Add label-label spacing between each pair of labels
-            height += Math.max(0, labelLabelSpacing * (labels.size() - 1));
-
-            // Create a SelfLoopLabel for this component
-            SelfLoopLabel label = new SelfLoopLabel();
-            label.getLabels().addAll(labels);
-            label.setHeight(height);
-            label.setWidth(maxWidth);
-            component.setSelfLoopLabel(label);
-        }
-    }
-
-    /**
-     * Collect and remove ports that are only self-loop ports.
-     */
-    private void hidePorts(final LNode node) {
-        List<LPort> selfLoopPorts = new ArrayList<LPort>();
-
-        // check each port if has to be hidden
-        for (LPort port : node.getPorts()) {
-            Iterable<LEdge> edges = port.getConnectedEdges();
-
-            // check whether an port belongs only to self-loops
-            boolean containsNonSelfloop = false;
-            for (LEdge edge : edges) {
-                if (!edge.isSelfLoop()) {
-                    containsNonSelfloop = true;
-                    break;
                 }
             }
-
-            // ports that belong only to self-loops are collected
-            if (!containsNonSelfloop) {
-                selfLoopPorts.add(port);
-            }
         }
-
-        // remove collected ports from node
-        node.getPorts().removeAll(selfLoopPorts);
     }
 
 }

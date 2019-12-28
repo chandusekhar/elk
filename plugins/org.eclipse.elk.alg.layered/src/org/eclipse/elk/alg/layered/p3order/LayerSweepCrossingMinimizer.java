@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p3order;
 
@@ -128,11 +127,11 @@ public class LayerSweepCrossingMinimizer
     private Consumer<GraphInfoHolder> chooseMinimizingMethod(final List<GraphInfoHolder> graphsToSweepOn) {
         GraphInfoHolder parent = graphsToSweepOn.get(0);
         if (!parent.crossMinDeterministic()) {
-            return g -> compareDifferentRandomizedLayouts(g);
+            return this::compareDifferentRandomizedLayouts;
         } else if (parent.crossMinAlwaysImproves()) {
-            return g -> minimizeCrossingsNoCounter(g);
+            return this::minimizeCrossingsNoCounter;
         } else {
-            return g -> minimizeCrossingsWithCounter(g);
+            return this::minimizeCrossingsWithCounter;
         }
     }
 
@@ -262,7 +261,7 @@ public class LayerSweepCrossingMinimizer
             final boolean isFirstSweep) {
         boolean improved = false;
         for (LNode node : layer) {
-            if (hasNestedGraph(node) && !graphInfoHolders.get(nestedGraphOf(node).id).dontSweepInto()) {
+            if (hasNestedGraph(node) && !graphInfoHolders.get(node.getNestedGraph().id).dontSweepInto()) {
                 improved |= sweepInHierarchicalNode(isForwardSweep, node, isFirstSweep);
             }
         }
@@ -271,7 +270,7 @@ public class LayerSweepCrossingMinimizer
 
     private boolean sweepInHierarchicalNode(final boolean isForwardSweep, final LNode node,
             final boolean isFirstSweep) {
-        LGraph nestedLGraph = nestedGraphOf(node);
+        LGraph nestedLGraph = node.getNestedGraph();
         GraphInfoHolder nestedGraph = graphInfoHolders.get(nestedLGraph.id);
         LNode[][] nestedGraphNodeOrder = nestedGraph.currentNodeOrder();
         int startIndex = firstIndex(isForwardSweep, nestedGraphNodeOrder.length);
@@ -323,6 +322,10 @@ public class LayerSweepCrossingMinimizer
             }
         }
 
+        if (i < layerCloseToNodeEdge.length) {
+            throw new IllegalStateException("Expected " + layerCloseToNodeEdge.length
+                    + " hierarchical ports, but found only " + i + ".");
+        }
         return sortedDummies;
     }
 
@@ -359,12 +362,8 @@ public class LayerSweepCrossingMinimizer
         return isForwardSweep ? freeLayerIndex < length : freeLayerIndex >= 0;
     }
 
-    private LGraph nestedGraphOf(final LNode node) {
-        return node.getProperty(InternalProperties.NESTED_LGRAPH);
-    }
-
     private Boolean hasNestedGraph(final LNode node) {
-        return nestedGraphOf(node) != null;
+        return node.getNestedGraph() != null;
     }
 
     private PortSide sideOpposedSweepDirection(final boolean isForwardSweep) {

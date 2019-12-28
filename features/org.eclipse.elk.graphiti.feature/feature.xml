@@ -1,18 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   Copyright (c) 2016 Kiel University and others.
-  All rights reserved. This program and the accompanying materials
-  are made available under the terms of the Eclipse Public License v1.0
-  which accompanies this distribution, and is available at
-  http://www.eclipse.org/legal/epl-v10.html
-
-  Contributors:
-    Kiel University - initial API and implementation
+  
+  This program and the accompanying materials are made available under the
+  terms of the Eclipse Public License 2.0 which is available at
+  http://www.eclipse.org/legal/epl-2.0.
+  
+  SPDX-License-Identifier: EPL-2.0
 -->
 <feature
       id="org.eclipse.elk.graphiti.feature"
       label="Eclipse Layout Kernel (Incubation) - Graphiti Support"
-      version="0.5.0.qualifier"
+      version="0.7.0.qualifier"
       provider-name="Eclipse Layout Kernel"
       plugin="org.eclipse.elk.core">
 
@@ -25,10 +24,11 @@ automatic layout in Graphiti-based editors.
    <copyright>
       Copyright (c) 2008 Kiel University and others.
 
-All rights reserved. This program and the accompanying materials
-are made available under the terms of the Eclipse Public License
-v1.0 which accompanies this distribution, and is available at
-http://www.eclipse.org/legal/epl-v10.html.
+This program and the accompanying materials are made available under the
+terms of the Eclipse Public License 2.0 which is available at
+http://www.eclipse.org/legal/epl-2.0.
+
+SPDX-License-Identifier: EPL-2.0
    </copyright>
 
    <license url="%licenseURL">
@@ -45,7 +45,7 @@ http://www.eclipse.org/legal/epl-v10.html.
       <import plugin="org.eclipse.ui.ide" version="3.5.0" match="greaterOrEqual"/>
       <import plugin="org.eclipse.ui.views.properties.tabbed" version="3.5.0" match="greaterOrEqual"/>
       <import plugin="com.google.guava" version="15.0.0" match="greaterOrEqual"/>
-      <import feature="org.eclipse.elk.feature" version="0.5.0.qualifier"/>
+      <import feature="org.eclipse.elk.feature" version="0.7.0.qualifier"/>
    </requires>
 
    <plugin

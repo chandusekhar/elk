@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered;
 
@@ -43,11 +42,10 @@ public final class LayeredLayoutProvider extends AbstractLayoutProvider implemen
 
     @Override
     public void layout(final ElkNode elkgraph, final IElkProgressMonitor progressMonitor) {
-        // Import the graph (layeredGraph won't be null since the KGraphImporter always returns an
-        // LGraph instance, even though the IGraphImporter interface would allow null as a return
-        // value)
-        IGraphTransformer<ElkNode> graphImporter = new ElkGraphTransformer();
-        LGraph layeredGraph = graphImporter.importGraph(elkgraph);
+        // Import the graph (layeredGraph won't be null since the KGraphImporter always returns an LGraph
+        // instance, even though the IGraphTransformer interface would allow null as a return value)
+        IGraphTransformer<ElkNode> graphTransformer = new ElkGraphTransformer();
+        LGraph layeredGraph = graphTransformer.importGraph(elkgraph);
 
         // Check if hierarchy handling for a compound graph is requested
         if (elkgraph.getProperty(LayeredOptions.HIERARCHY_HANDLING) == HierarchyHandling.INCLUDE_CHILDREN) {
@@ -60,7 +58,7 @@ public final class LayeredLayoutProvider extends AbstractLayoutProvider implemen
         
         if (!progressMonitor.isCanceled()) {
             // Apply the layout results to the original graph
-            graphImporter.applyLayout(layeredGraph);
+            graphTransformer.applyLayout(layeredGraph);
         }
     }
 

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2011, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -15,6 +14,7 @@ import java.util.ListIterator;
 
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
+import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LLabel;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
@@ -72,13 +72,10 @@ import com.google.common.collect.Lists;
  * </dl>
  * 
  * @see PortSideProcessor
- * @author cds
  */
 public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("Inverted port preprocessing", 1);
         
@@ -93,12 +90,11 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
         List<LNode> unassignedNodes = Lists.newArrayList();
         
         while (layerIterator.hasNext()) {
-            // Find the current, previous and next layer. If this layer is the last one,
-            // use the postfix layer as the next layer
+            // Update previous and current layers
             Layer previousLayer = currentLayer;
             currentLayer = layerIterator.next();
             
-            // If the last layer had unassigned nodes, assign them now and clear the list
+            // If the previous layer had unassigned nodes, assign them now and clear the list
             for (LNode node : unassignedNodes) {
                 node.setLayer(previousLayer);
             }
@@ -123,7 +119,7 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
                     // a copy of the current list of edges, since the edges are modified when
                     // dummy nodes are created)
                     List<LEdge> edges = port.getIncomingEdges();
-                    LEdge[] edgeArray = edges.toArray(new LEdge[edges.size()]);
+                    LEdge[] edgeArray = LGraphUtil.toEdgeArray(edges);
                     
                     for (LEdge edge : edgeArray) {
                         createEastPortSideDummies(layeredGraph, port, edge, unassignedNodes);
@@ -136,7 +132,7 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
                     // a copy of the current list of edges, since the edges are modified when
                     // dummy nodes are created)
                     List<LEdge> edges = port.getOutgoingEdges();
-                    LEdge[] edgeArray = edges.toArray(new LEdge[edges.size()]);
+                    LEdge[] edgeArray = LGraphUtil.toEdgeArray(edges);
                     
                     for (LEdge edge : edgeArray) {
                         createWestPortSideDummies(layeredGraph, port, edge, unassignedNodes);
@@ -170,6 +166,9 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
     private void createEastPortSideDummies(final LGraph layeredGraph, final LPort eastwardPort,
             final LEdge edge, final List<LNode> layerNodeList) {
         
+        assert edge.getTarget() == eastwardPort;
+        
+        // Ignore self loops
         if (edge.getSource().getNode() == eastwardPort.getNode()) {
             return;
         }
@@ -232,6 +231,9 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
     private void createWestPortSideDummies(final LGraph layeredGraph, final LPort westwardPort,
             final LEdge edge, final List<LNode> layerNodeList) {
         
+        assert edge.getSource() == westwardPort;
+        
+        // Ignore self loops
         if (edge.getTarget().getNode() == westwardPort.getNode()) {
             return;
         }
@@ -261,6 +263,17 @@ public final class InvertedPortProcessor implements ILayoutProcessor<LGraph> {
         dummyEdge.setProperty(LayeredOptions.JUNCTION_POINTS, null);
         dummyEdge.setSource(dummyOutput);
         dummyEdge.setTarget(originalTarget);
+        
+        // Move any head labels over to the new dummy edge
+        ListIterator<LLabel> labelIterator = edge.getLabels().listIterator();
+        while (labelIterator.hasNext()) {
+            LLabel label = labelIterator.next();
+            
+            if (label.getProperty(LayeredOptions.EDGE_LABELS_PLACEMENT) == EdgeLabelPlacement.HEAD) {
+                labelIterator.remove();
+                dummyEdge.getLabels().add(label);
+            }
+        }
         
         // Set LONG_EDGE_SOURCE and LONG_EDGE_TARGET properties on the LONG_EDGE dummy
         setLongEdgeSourceAndTarget(dummy, dummyInput, dummyOutput, westwardPort);

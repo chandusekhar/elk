@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -93,7 +92,7 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     /** Hierarchical two-sided greedy switch crossing reduction. */
     TWO_SIDED_GREEDY_SWITCH,
     /** Position self loops after phase 3. */
-    SELF_LOOP_PLACER,
+    SELF_LOOP_PORT_RESTORER,
     /** Wraps graphs such that they better fit a given drawing area, allowing only a single edge per cut. */
     SINGLE_EDGE_GRAPH_WRAPPER,
     /** Makes sure that in-layer constraints are handled. */
@@ -104,12 +103,12 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     END_NODE_PORT_LABEL_MANAGEMENT_PROCESSOR,
     /** Sets the positions of ports and labels, and sets the node sizes. */
     LABEL_AND_NODE_SIZE_PROCESSOR,
-    /** Calculates the self loops with relative position to the parent node.*/
-    SELF_LOOP_LABEL_PLACER,
+    /** Calculates the margins of nodes according to the sizes of ports and port labels. */
+    INNERMOST_NODE_MARGIN_CALCULATOR,
     /** Calculate the bendpoints for the self-loop edges. */
-    SELF_LOOP_BENDPOINT_CALCULATOR,
-    /** Calculates the margins of nodes according to the sizes of ports and labels. */
-    NODE_MARGIN_CALCULATOR,
+    SELF_LOOP_ROUTER,
+    /** Extends node margin by the space required for comment boxes. */
+    COMMENT_NODE_MARGIN_CALCULATOR,
     /** Place end labels of edges and extend node margins accordingly. */
     END_LABEL_PREPROCESSOR,
     /** Tries to switch the label dummy nodes which the middle most dummy node of a long edge. */
@@ -198,6 +197,9 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
         case CENTER_LABEL_MANAGEMENT_PROCESSOR:
             return new LabelManagementProcessor(true);
             
+        case COMMENT_NODE_MARGIN_CALCULATOR:
+            return new CommentNodeMarginCalculator();
+            
         case COMMENT_POSTPROCESSOR:
             return new CommentPostprocessor();
             
@@ -224,12 +226,6 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
             
         case FINAL_SPLINE_BENDPOINTS_CALCULATOR:
             return new FinalSplineBendpointsCalculator();
-
-        case ONE_SIDED_GREEDY_SWITCH:
-            return new LayerSweepCrossingMinimizer(CrossMinType.ONE_SIDED_GREEDY_SWITCH);
-            
-        case TWO_SIDED_GREEDY_SWITCH:
-            return new LayerSweepCrossingMinimizer(CrossMinType.TWO_SIDED_GREEDY_SWITCH);
 
         case HIERARCHICAL_NODE_RESIZER:
             return new HierarchicalNodeResizingProcessor();
@@ -260,9 +256,15 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
 
         case IN_LAYER_CONSTRAINT_PROCESSOR:
             return new InLayerConstraintProcessor();
+
+        case INNERMOST_NODE_MARGIN_CALCULATOR:
+            return new InnermostNodeMarginCalculator();
             
         case INTERACTIVE_EXTERNAL_PORT_POSITIONER:
             return new InteractiveExternalPortPositioner();
+            
+        case INVERTED_PORT_PROCESSOR:
+            return new InvertedPortProcessor();
 
         case LABEL_AND_NODE_SIZE_PROCESSOR:
             return new LabelAndNodeSizeProcessor();
@@ -290,9 +292,6 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
 
         case LONG_EDGE_SPLITTER:
             return new LongEdgeSplitter();
-
-        case NODE_MARGIN_CALCULATOR:
-            return new NodeMarginCalculator();
             
         case NODE_PROMOTION:
             return new NodePromotion();
@@ -303,8 +302,8 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
         case NORTH_SOUTH_PORT_PREPROCESSOR:
             return new NorthSouthPortPreprocessor();
 
-        case INVERTED_PORT_PROCESSOR:
-            return new InvertedPortProcessor();
+        case ONE_SIDED_GREEDY_SWITCH:
+            return new LayerSweepCrossingMinimizer(CrossMinType.ONE_SIDED_GREEDY_SWITCH);
 
         case PARTITION_POSTPROCESSOR:
             return new PartitionPostprocessor();
@@ -320,27 +319,27 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
 
         case REVERSED_EDGE_RESTORER:
             return new ReversedEdgeRestorer();
-
-        case SINGLE_EDGE_GRAPH_WRAPPER:
-            return new SingleEdgeGraphWrapper();
-            
-        case SEMI_INTERACTIVE_CROSSMIN_PROCESSOR:
-            return new SemiInteractiveCrossMinProcessor();
             
         case SELF_LOOP_PREPROCESSOR:
             return new SelfLoopPreProcessor();
             
-        case SELF_LOOP_PLACER:
-            return new SelfLoopPlacer();
-            
-        case SELF_LOOP_LABEL_PLACER:
-            return new SelfLoopLabelPlacer();
-            
-        case SELF_LOOP_BENDPOINT_CALCULATOR:
-            return new SelfLoopBendpointCalculator();
+        case SELF_LOOP_PORT_RESTORER:
+            return new SelfLoopPortRestorer();
 
         case SELF_LOOP_POSTPROCESSOR:
             return new SelfLoopPostProcessor();
+            
+        case SELF_LOOP_ROUTER:
+            return new SelfLoopRouter();
+            
+        case SEMI_INTERACTIVE_CROSSMIN_PROCESSOR:
+            return new SemiInteractiveCrossMinProcessor();
+
+        case SINGLE_EDGE_GRAPH_WRAPPER:
+            return new SingleEdgeGraphWrapper();
+            
+        case TWO_SIDED_GREEDY_SWITCH:
+            return new LayerSweepCrossingMinimizer(CrossMinType.TWO_SIDED_GREEDY_SWITCH);
 
         default:
             throw new IllegalArgumentException(

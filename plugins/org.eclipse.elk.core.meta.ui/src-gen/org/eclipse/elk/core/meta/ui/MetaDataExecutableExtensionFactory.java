@@ -1,16 +1,16 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.meta.ui;
 
 import com.google.inject.Injector;
+import org.eclipse.core.runtime.Platform;
 import org.eclipse.elk.core.meta.ui.internal.MetaActivator;
 import org.eclipse.xtext.ui.guice.AbstractGuiceAwareExecutableExtensionFactory;
 import org.osgi.framework.Bundle;
@@ -23,12 +23,13 @@ public class MetaDataExecutableExtensionFactory extends AbstractGuiceAwareExecut
 
 	@Override
 	protected Bundle getBundle() {
-		return MetaActivator.getInstance().getBundle();
+		return Platform.getBundle(MetaActivator.PLUGIN_ID);
 	}
 	
 	@Override
 	protected Injector getInjector() {
-		return MetaActivator.getInstance().getInjector(MetaActivator.ORG_ECLIPSE_ELK_CORE_META_METADATA);
+		MetaActivator activator = MetaActivator.getInstance();
+		return activator != null ? activator.getInjector(MetaActivator.ORG_ECLIPSE_ELK_CORE_META_METADATA) : null;
 	}
-	
+
 }

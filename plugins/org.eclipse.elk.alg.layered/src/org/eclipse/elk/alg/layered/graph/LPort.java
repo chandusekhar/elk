@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2010, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.graph;
 
@@ -17,6 +16,7 @@ import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.options.PortSide;
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
@@ -30,8 +30,6 @@ import com.google.common.collect.Lists;
  * <p>Port must be used even if the original graph does not reveal them. In this
  * case each edge has dedicated source and target ports, which are used to
  * determine the points where the edge touches the source and target nodes.</p>
- *
- * @author msp
  */
 public final class LPort extends LShape {
 
@@ -87,7 +85,7 @@ public final class LPort extends LShape {
     /** the anchor point position. */
     private final KVector anchor = new KVector();
     /** whether the anchor point position was fixed by the user or not. */
-    private boolean anchorFixed = false;
+    private boolean explicitlySuppliedPortAnchor = false;
     /** the margin area around this port. */
     private final LMargin margin = new LMargin();
     /** this port's labels. */
@@ -99,6 +97,7 @@ public final class LPort extends LShape {
     private final List<LEdge> outgoingEdges = Lists.newArrayListWithCapacity(4);
     /** All connected edges in a combined iterable. */
     private Iterable<LEdge> connectedEdges = new CombineIter<LEdge>(incomingEdges, outgoingEdges);
+    
     /**
      * Returns the node that owns this port.
      * 
@@ -140,6 +139,8 @@ public final class LPort extends LShape {
 
     /**
      * Sets the node side on which the port is drawn.
+     * If the port anchor was not already supplied it is set to the default for the corresponding direction.
+     * The default position is in the middle of the port in the direction specified by the side to set.
      * 
      * @param theside the side to set
      */
@@ -148,11 +149,35 @@ public final class LPort extends LShape {
             throw new NullPointerException();
         }
         this.side = theside;
+        if (!isExplicitlySuppliedPortAnchor()) {
+            switch (this.side) {
+            case NORTH:
+                // adapt the anchor so edges are attached top center
+                getAnchor().x = getSize().x / 2;
+                getAnchor().y = 0;
+                break;
+            case EAST:
+                // adapt the anchor so edges are attached center right
+                getAnchor().x = getSize().x;
+                getAnchor().y = getSize().y / 2;
+                break;
+            case SOUTH:
+                // adapt the anchor so edges are attached bottom center
+                getAnchor().x = getSize().x / 2;
+                getAnchor().y = getSize().y;
+                break;
+            case WEST:
+                // adapt the anchor so edges are attached center left
+                getAnchor().x = 0;
+                getAnchor().y = getSize().y / 2;
+                break;
+            }
+        }
     }
     
     /**
      * Returns the anchor position of the port. This is the point where edges should be attached,
-     * relative to the port's position. Should only be modified when the port position is changed.
+     * relative to the port's position. Is automatically changed whenever {@code setSide} is called.
      * 
      * @return the anchor position
      */
@@ -161,25 +186,23 @@ public final class LPort extends LShape {
     }
     
     /**
-     * Checks if the anchor position is fixed or not. If it is fixed, the algorithm will assume that
-     * the user knows what they are doing and not mess with it. If it is not fixed, the algorithm
-     * is free to adjust the anchor position, for example once the port's side is fixed.
+     * Checks if the anchor position is explicitly set. The algorithm should always check this
+     * property before changing the port anchor.
      * 
-     * @return {@code true} or {@code false} as the anchor is fixed or not, respectively.
+     * @return {@code true} or {@code false} as the anchor is explicitly supplied, respectively.
      */
-    public boolean isAnchorFixed() {
-        return anchorFixed;
+    public boolean isExplicitlySuppliedPortAnchor() {
+        return explicitlySuppliedPortAnchor;
     }
     
     /**
-     * Determeines whether the port's anchor is to be considered fixed or not. This is just a hint
-     * and does not stop code from modifying the anchor anyway.
+     * Determines whether the port's anchor is to be considered explicitly supplied and should not be changed.
      * 
-     * @param fixed {@code true} if the anchor should be fixed, {@code false} if it is eligible
+     * @param fixed {@code true} if the anchor is explicitly supplied, {@code false} if it is eligible
      *              to be modified.
      */
-    public void setAnchorFixed(final boolean fixed) {
-        anchorFixed = fixed;
+    public void setExplicitlySuppliedPortAnchor(final boolean fixed) {
+        explicitlySuppliedPortAnchor = fixed;
     }
     
     /**
@@ -348,17 +371,36 @@ public final class LPort extends LShape {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
+    public String getDesignation() {
+        if (!labels.isEmpty() && !Strings.isNullOrEmpty(labels.get(0).getText())) {
+            return labels.get(0).getText();
+        }
+        String id = super.getDesignation();
+        if (id != null) {
+            return id;
+        }
+        return Integer.toString(getIndex());
+    }
+
     @Override
     public String toString() {
-        String text = getName();
-        if (text == null) {
-            return "p_" + id;
-        } else {
-            return "p_" + text;
+        StringBuilder result = new StringBuilder();
+        result.append("p_").append(getDesignation());
+        if (owner != null) {
+            result.append("[").append(owner).append("]");
         }
+        if (incomingEdges.size() == 1 && outgoingEdges.isEmpty() && incomingEdges.get(0).getSource() != this) {
+            LPort source = incomingEdges.get(0).getSource();
+            result.append(" << ").append(source.getDesignation());
+            result.append("[").append(source.owner).append("]");
+        }
+        if (incomingEdges.isEmpty() && outgoingEdges.size() == 1 && outgoingEdges.get(0).getTarget() != this) {
+            LPort target = outgoingEdges.get(0).getTarget();
+            result.append(" >> ").append(target.getDesignation());
+            result.append("[").append(target.owner).append("]");
+        }
+        return result.toString();
     }
 
     /**

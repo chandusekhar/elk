@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p2layers;
 
@@ -347,7 +346,7 @@ public class StretchWidthLayerer implements ILayoutPhase<LayeredPhases, LGraph> 
      * {@link #computeSuccessors()}.
      */
     private void minMaxNodeSize() {
-        // since in KLay all things are layered, left to right
+        // since in ELK all things are layered, left to right
         // a preprocessor also transposes the width and height and
         // we don't need to consider the layering direction and can take the
         // the y-size

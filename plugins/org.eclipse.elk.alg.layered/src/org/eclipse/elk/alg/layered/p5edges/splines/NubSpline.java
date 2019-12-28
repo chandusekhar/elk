@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2014, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p5edges.splines;
 
@@ -146,7 +145,7 @@ public class NubSpline {
      * @param kVectors The control points of this NubSpline.
      */
     public NubSpline(final boolean clamped, final int dimension, final KVector... kVectors) {
-        this(true, dimension, Lists.newArrayList(kVectors));
+        this(clamped, dimension, Lists.newArrayList(kVectors));
     }
 
     /**

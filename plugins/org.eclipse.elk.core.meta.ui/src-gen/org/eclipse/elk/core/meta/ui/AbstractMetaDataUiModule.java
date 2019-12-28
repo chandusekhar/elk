@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.meta.ui;
 
@@ -20,6 +19,7 @@ import org.eclipse.elk.core.meta.ide.contentassist.antlr.MetaDataParser;
 import org.eclipse.elk.core.meta.ide.contentassist.antlr.PartialMetaDataContentAssistParser;
 import org.eclipse.elk.core.meta.ide.contentassist.antlr.internal.InternalMetaDataLexer;
 import org.eclipse.elk.core.meta.ui.contentassist.MetaDataProposalProvider;
+import org.eclipse.elk.core.meta.ui.editor.MetaDataEditor;
 import org.eclipse.elk.core.meta.ui.labeling.MetaDataDescriptionLabelProvider;
 import org.eclipse.elk.core.meta.ui.labeling.MetaDataLabelProvider;
 import org.eclipse.elk.core.meta.ui.outline.MetaDataOutlineTreeProvider;
@@ -103,7 +103,6 @@ import org.eclipse.xtext.xbase.imports.IUnresolvedTypeResolver;
 import org.eclipse.xtext.xbase.ui.DefaultXbaseUiModule;
 import org.eclipse.xtext.xbase.ui.contentassist.ImportingTypesProposalProvider;
 import org.eclipse.xtext.xbase.ui.editor.XbaseDocumentProvider;
-import org.eclipse.xtext.xbase.ui.editor.XbaseEditor;
 import org.eclipse.xtext.xbase.ui.generator.trace.XbaseOpenGeneratedFileHandler;
 import org.eclipse.xtext.xbase.ui.imports.InteractiveUnresolvedTypeResolver;
 import org.eclipse.xtext.xbase.ui.jvmmodel.findrefs.JvmModelFindReferenceHandler;
@@ -131,11 +130,6 @@ public abstract class AbstractMetaDataUiModule extends DefaultXbaseUiModule {
 	// contributed by org.eclipse.xtext.xtext.generator.ImplicitFragment
 	public Provider<? extends IAllContainersState> provideIAllContainersState() {
 		return Access.getJavaProjectsState();
-	}
-	
-	// contributed by org.eclipse.xtext.xtext.generator.ImplicitFragment
-	public Class<? extends XtextEditor> bindXtextEditor() {
-		return XbaseEditor.class;
 	}
 	
 	// contributed by org.eclipse.xtext.xtext.generator.ImplicitFragment
@@ -369,6 +363,11 @@ public abstract class AbstractMetaDataUiModule extends DefaultXbaseUiModule {
 	// contributed by org.eclipse.xtext.xtext.generator.xbase.XbaseGeneratorFragment2
 	public Class<? extends XtextTemplateContextType> bindXtextTemplateContextType() {
 		return XbaseTemplateContextType.class;
+	}
+	
+	// contributed by org.eclipse.xtext.xtext.generator.xbase.XbaseGeneratorFragment2
+	public Class<? extends XtextEditor> bindXtextEditor() {
+		return MetaDataEditor.class;
 	}
 	
 	// contributed by org.eclipse.xtext.xtext.generator.ui.templates.CodetemplatesGeneratorFragment2

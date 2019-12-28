@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2016, Kiel University.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2016 Kiel University.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *    alan - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p3order;
 
@@ -53,7 +52,7 @@ public class GreedyPortDistributor implements ISweepPortDistributor, IInitializa
             if (node.getProperty(LayeredOptions.PORT_CONSTRAINTS).isOrderFixed()) {
                 continue;
             }
-            LGraph nestedGraph = node.getProperty(InternalProperties.NESTED_LGRAPH);
+            LGraph nestedGraph = node.getNestedGraph();
             boolean useHierarchicalCrossCounter = !node.getPortSideView(side).isEmpty() && nestedGraph != null;
             if (useHierarchicalCrossCounter) {
                 LNode[][] innerGraph = nestedGraph.toNodeArray();

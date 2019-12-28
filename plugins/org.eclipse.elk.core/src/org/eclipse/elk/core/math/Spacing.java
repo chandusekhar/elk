@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2014, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.math;
 
@@ -55,6 +54,16 @@ public abstract class Spacing implements IDataObject, Cloneable {
      */
     protected Spacing(final double top, final double right, final double bottom, final double left) {
         set(top, right, bottom, left);
+    }
+    
+    /**
+     * Sets all spacings to the ones of the given {@link Spacing} object.
+     * 
+     * @param spacing
+     *            the spacing object to set this instance's values to.
+     */
+    public void set(final Spacing spacing) {
+        set(spacing.top, spacing.right, spacing.bottom, spacing.left);
     }
 
     /**

@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.options;
 
@@ -25,12 +24,11 @@ import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.LPort;
 import org.eclipse.elk.alg.layered.intermediate.FinalSplineBendpointsCalculator;
+import org.eclipse.elk.alg.layered.intermediate.loops.SelfLoopHolder;
 import org.eclipse.elk.alg.layered.intermediate.wrapping.BreakingPointInserter;
-import org.eclipse.elk.alg.layered.p5edges.loops.SelfLoopNode;
 import org.eclipse.elk.alg.layered.p5edges.splines.SplineEdgeRouter;
 import org.eclipse.elk.alg.layered.p5edges.splines.SplineSegment;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
-import org.eclipse.elk.core.math.ElkMargin;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
 import org.eclipse.elk.core.options.LabelSide;
@@ -83,17 +81,6 @@ public final class InternalProperties {
      */
     public static final IProperty<Boolean> INSIDE_CONNECTIONS = new Property<Boolean>(
             "insideConnections", false);
-
-    /**
-     * An LNode that represents a compound node can hold a reference to a nested LGraph which
-     * represents the graph that is contained within the compound node.
-     */
-    public static final IProperty<LGraph> NESTED_LGRAPH = new Property<LGraph>("nestedLGraph");
-
-    /**
-     * A nested LGraph has a reference to the LNode that contains it.
-     */
-    public static final IProperty<LNode> PARENT_LNODE = new Property<LNode>("parentLNode");
 
     /**
      * The original bend points of an edge.
@@ -374,12 +361,6 @@ public final class InternalProperties {
             new Property<KVector>("splineLabelSize", new KVector());
 
     /**
-     * A node's property storing the margins of a node required for it's self loops.
-     */
-    public static final IProperty<ElkMargin> SELF_LOOP_MARGINS = new Property<ElkMargin>(
-            "splineSelfLoopMargins", new ElkMargin());
-
-    /**
      * Internal container for all possible spacing variations that we support.
      */
     public static final IProperty<Spacings> SPACINGS =
@@ -426,12 +407,12 @@ public final class InternalProperties {
      */
     public static final IProperty<PortConstraints> ORIGINAL_PORT_CONSTRAINTS =  
             new Property<PortConstraints>("originalPortConstraints");
-
+    
     /**
-     * The linear node representation used from the self-loop calculation.
+     * Holds all of the information necessary to route self loops around a node.
      */
-    public static final IProperty<SelfLoopNode> SELFLOOP_NODE_REPRESENTATION =
-            new Property<SelfLoopNode>("selfLoopNodeRepresentation");
+    public static final IProperty<SelfLoopHolder> SELF_LOOP_HOLDER =
+            new Property<>("selfLoopHolder");
 
     /**
      * Holds the y-coordinate of a deleted {@link NodeType#NORTH_SOUTH_PORT} dummy node. To be read by the

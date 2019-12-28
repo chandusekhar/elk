@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2012, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -27,6 +26,8 @@ import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeRouting;
 import org.eclipse.elk.core.options.LabelSide;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
+
+import com.google.common.collect.Lists;
 
 /**
  * <p>Processor that removes the inserted center label dummies and places the labels on their
@@ -94,7 +95,8 @@ public final class LabelDummyRemover implements ILayoutProcessor<LGraph> {
                                 currLabelPos,
                                 labelLabelSpacing,
                                 labelSpace,
-                                labelsBelowEdge);
+                                labelsBelowEdge,
+                                layoutDirection);
                     } else {
                         placeLabelsForHorizontalLayout(
                                 representedLabels,
@@ -133,13 +135,30 @@ public final class LabelDummyRemover implements ILayoutProcessor<LGraph> {
     }
 
     private void placeLabelsForVerticalLayout(final List<LLabel> labels, final KVector labelPos,
-            final double labelSpacing, final KVector labelSpace, final boolean leftAligned) {
+            final double labelSpacing, final KVector labelSpace, final boolean leftAligned,
+            final Direction layoutDirection) {
         
-        for (LLabel label : labels) {
+        // We may have to override the alignment if all labels here are inline labels
+        boolean inline = labels.stream().allMatch(label -> label.getProperty(LayeredOptions.EDGE_LABELS_INLINE));
+        
+        // Due to the way layout directions work, we need to pay attention to the order in which we place labels. While
+        // we can simply place them as they come for the DOWN direction, doing the same for the UP direction will
+        // reverse the label order in the final result. Thus, in that case we iterate over the reversed label list
+        List<LLabel> effectiveLabels = labels;
+        if (layoutDirection == Direction.UP) {
+            effectiveLabels = Lists.reverse(effectiveLabels);
+        }
+        
+        for (LLabel label : effectiveLabels) {
             label.getPosition().x = labelPos.x;
-            label.getPosition().y = leftAligned
-                    ? labelPos.y
-                    : labelPos.y + labelSpace.y - label.getSize().y;
+            
+            if (inline) {
+                label.getPosition().y = labelPos.y + (labelSpace.y - label.getSize().y) / 2;
+            } else if (leftAligned) {
+                label.getPosition().y = labelPos.y;
+            } else {
+                label.getPosition().y = labelPos.y + labelSpace.y - label.getSize().y;
+            }
             
             labelPos.x += label.getSize().x + labelSpacing;
         }

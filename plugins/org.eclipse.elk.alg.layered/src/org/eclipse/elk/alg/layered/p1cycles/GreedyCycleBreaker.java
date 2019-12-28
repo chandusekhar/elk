@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p1cycles;
 
@@ -17,6 +16,7 @@ import java.util.Random;
 import org.eclipse.elk.alg.layered.LayeredPhases;
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
+import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LPort;
 import org.eclipse.elk.alg.layered.intermediate.IntermediateProcessorStrategy;
@@ -193,10 +193,9 @@ public final class GreedyCycleBreaker implements ILayoutPhase<LayeredPhases, LGr
 
         // reverse edges that point left
         for (LNode node : nodes) {
-            LPort[] ports = node.getPorts().toArray(new LPort[node.getPorts().size()]);
+            LPort[] ports = LGraphUtil.toPortArray(node.getPorts());
             for (LPort port : ports) {
-                LEdge[] outgoingEdges = port.getOutgoingEdges().toArray(
-                        new LEdge[port.getOutgoingEdges().size()]);
+                LEdge[] outgoingEdges = LGraphUtil.toEdgeArray(port.getOutgoingEdges());
                 
                 // look at the node's outgoing edges
                 for (LEdge edge : outgoingEdges) {

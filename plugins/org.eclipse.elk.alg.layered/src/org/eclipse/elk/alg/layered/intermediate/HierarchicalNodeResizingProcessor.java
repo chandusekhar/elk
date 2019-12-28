@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -62,13 +61,9 @@ public class HierarchicalNodeResizingProcessor implements ILayoutProcessor<LGrap
         graph.getLayers().clear();
         resizeGraph(graph);
         if (isNested(graph)) {
-            graphLayoutToNode(parentNodeOf(graph), graph);
+            graphLayoutToNode(graph.getParentNode(), graph);
         }
         progressMonitor.done();
-    }
-
-    private LNode parentNodeOf(final LGraph graph) {
-        return graph.getProperty(InternalProperties.PARENT_LNODE);
     }
 
     /**
@@ -110,7 +105,7 @@ public class HierarchicalNodeResizingProcessor implements ILayoutProcessor<LGrap
     }
 
     private boolean isNested(final LGraph graph) {
-        return parentNodeOf(graph) != null;
+        return graph.getParentNode() != null;
     }
 
     // //////////////////////////////////////////////////////////////////////////////
@@ -122,7 +117,7 @@ public class HierarchicalNodeResizingProcessor implements ILayoutProcessor<LGrap
      *
      * <p>
      * Major parts of this method are adapted from
-     * {@link ElkUtil#resizeNode(org.eclipse.elk.graph.KNode, float, float, boolean, boolean)}.
+     * {@link ElkUtil#resizeNode(org.eclipse.elk.graph.ElkNode, double, double, boolean, boolean)}.
      * </p>
      *
      * <p>

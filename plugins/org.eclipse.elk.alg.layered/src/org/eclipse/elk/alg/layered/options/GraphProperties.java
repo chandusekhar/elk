@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.options;
 
@@ -19,7 +18,7 @@ package org.eclipse.elk.alg.layered.options;
  * {@link LayeredOptions#GRAPH_PROPERTIES} property.</p>
  * 
  * <p>{@link org.eclipse.elk.graph.properties.GraphFeature GraphFeature} serves a similar purpose in ELK.
- * However, since this enumeration is more specific to what KLay Layered supports, the two should stay
+ * However, since this enumeration is more specific to what ELK Layered supports, the two should stay
  * separate.
  * 
  * @author cds

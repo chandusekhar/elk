@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.math;
 
@@ -286,6 +285,19 @@ public final class KVector implements IDataObject, Cloneable {
     }
 
     /**
+     * Returns the difference of two vectors as a new vector instance.
+     *
+     * @param v1
+     *            the minuend
+     * @param v2
+     *            the subtrahend
+     * @return a new vector containing the difference of given vectors
+     */
+    public static KVector diff(final KVector v1, final KVector v2) {
+        return new KVector(v1.x - v2.x, v1.y - v2.y);
+    }
+
+    /**
      * Scale the vector.
      *
      * @param scale
@@ -409,10 +421,10 @@ public final class KVector implements IDataObject, Cloneable {
      *
      * @param v2
      *            second vector
-     * @return (this.x * this.x) + (v1.y * v2.y)
+     * @return this.x * v2.x + this.y * v2.y
      */
     public double dotProduct(final KVector v2) {
-        return ((this.x * v2.x) + (this.y * v2.y));
+        return this.x * v2.x + this.y * v2.y;
     }
     
     /**

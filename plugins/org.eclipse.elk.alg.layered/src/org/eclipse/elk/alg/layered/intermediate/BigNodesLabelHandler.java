@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2014, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -82,7 +81,7 @@ public final class BigNodesLabelHandler {
          * @param dummies
          *            the created dummy nodes
          */
-        private Handler(final LNode node, final List<LNode> dummies, final double chunkWidth) {
+        Handler(final LNode node, final List<LNode> dummies, final double chunkWidth) {
             this.node = node;
             this.chunks = dummies.size();
 
@@ -305,7 +304,8 @@ public final class BigNodesLabelHandler {
     private static final class CompoundFunction implements Function<Void, Void> {
         private Function<Void, Void>[] funs;
 
-        private CompoundFunction(final Function<Void, Void>... funs) {
+        @SuppressWarnings("unchecked")
+        CompoundFunction(final Function<Void, Void>... funs) {
             this.funs = funs;
         }
 

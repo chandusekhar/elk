@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2011, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p3order;
 
@@ -46,9 +45,6 @@ import org.eclipse.elk.core.util.IElkProgressMonitor;
  *     <dd>Long edge dummy nodes have their calculated original position set as property
  *       {@link InternalProperties#ORIGINAL_DUMMY_NODE_POSITION}.</dd>
  * </dl>
- *
- * @author msp
- * @author cds
  */
 public final class InteractiveCrossingMinimizer implements ILayoutPhase<LayeredPhases, LGraph> {
 
@@ -59,9 +55,7 @@ public final class InteractiveCrossingMinimizer implements ILayoutPhase<LayeredP
             .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.IN_LAYER_CONSTRAINT_PROCESSOR)
             .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.LONG_EDGE_JOINER);
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public LayoutProcessorConfiguration<LayeredPhases, LGraph> getLayoutProcessorConfiguration(final LGraph graph) {
         LayoutProcessorConfiguration<LayeredPhases, LGraph> configuration =
                 LayoutProcessorConfiguration.createFrom(INTERMEDIATE_PROCESSING_CONFIGURATION);
@@ -73,9 +67,7 @@ public final class InteractiveCrossingMinimizer implements ILayoutPhase<LayeredP
         return configuration;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("Interactive crossing minimization", 1);
         
@@ -103,7 +95,10 @@ public final class InteractiveCrossingMinimizer implements ILayoutPhase<LayeredP
                     port.id = portCount++;
                 }
             }
-            horizPos /= nodeCount;
+            
+            if (nodeCount > 0) {
+                horizPos /= nodeCount;
+            }
             
             // create an array of vertical node positions
             final double[] pos = new double[layer.getNodes().size()];

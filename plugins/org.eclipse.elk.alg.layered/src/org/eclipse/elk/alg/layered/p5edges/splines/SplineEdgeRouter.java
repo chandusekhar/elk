@@ -1,9 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2018 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p5edges.splines;
 
@@ -90,9 +92,8 @@ public final class SplineEdgeRouter implements ILayoutPhase<LayeredPhases, LGrap
                 .addBefore(LayeredPhases.P1_CYCLE_BREAKING, IntermediateProcessorStrategy.SELF_LOOP_PREPROCESSOR)
                 .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.SELF_LOOP_POSTPROCESSOR)
                 .before(LayeredPhases.P4_NODE_PLACEMENT)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_PLACER)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_LABEL_PLACER)
-                    .add(IntermediateProcessorStrategy.SELF_LOOP_BENDPOINT_CALCULATOR);
+                    .add(IntermediateProcessorStrategy.SELF_LOOP_PORT_RESTORER)
+                    .add(IntermediateProcessorStrategy.SELF_LOOP_ROUTER);
 
     /** additional processor dependencies for graphs with center edge labels. */
     private static final LayoutProcessorConfiguration<LayeredPhases, LGraph> CENTER_EDGE_LABEL_PROCESSING_ADDITIONS =

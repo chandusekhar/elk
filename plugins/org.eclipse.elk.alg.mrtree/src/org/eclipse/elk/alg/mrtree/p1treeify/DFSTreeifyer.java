@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2013, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.mrtree.p1treeify;
 
@@ -29,7 +28,7 @@ import org.eclipse.elk.core.util.IElkProgressMonitor;
  * This phase should create a tree out of a graph that is hardly a tree.
  * It should for example look for cycles in a tree and remove that cycles. This cycle breaking is
  * done through eliminating the edge that destroys the tree property and putting that edge into a
- * list. So this phase builds up a list with removed edges, so that the KLay Tree algorithm can
+ * list. So this phase builds up a list with removed edges, so that the Mr. Tree algorithm can
  * operate on the newly constructed graph which is now a tree. The previously removed edges could be
  * reinserted during a post-processing. The search order can be DFS or BFS.
  * 

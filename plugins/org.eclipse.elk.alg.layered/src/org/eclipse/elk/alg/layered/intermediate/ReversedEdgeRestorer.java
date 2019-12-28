@@ -1,17 +1,17 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
+import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LPort;
 import org.eclipse.elk.alg.layered.graph.Layer;
@@ -50,8 +50,7 @@ public final class ReversedEdgeRestorer implements ILayoutProcessor<LGraph> {
                 // Iterate over all the ports, looking for outgoing edges that should be reversed
                 for (LPort port : node.getPorts()) {
                     // Iterate over a copy of the edges to avoid concurrent modification exceptions
-                    LEdge[] edgeArray = port.getOutgoingEdges().toArray(
-                            new LEdge[port.getOutgoingEdges().size()]);
+                    LEdge[] edgeArray = LGraphUtil.toEdgeArray(port.getOutgoingEdges());
                     
                     for (LEdge edge : edgeArray) {
                         if (edge.getProperty(InternalProperties.REVERSED)) {

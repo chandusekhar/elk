@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2012, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -76,7 +75,7 @@ import com.google.common.collect.Lists;
  *     <dd>Before phase 4.</dd>
  *   <dt>Same-slot dependencies:</dt>
  *     <dd>{@link NodeLabelAndSizeCalculator}</dd>
- *     <dd>{@link NodeMarginCalculator}</dd>
+ *     <dd>{@link InnermostNodeMarginCalculator}</dd>
  *     <dd>{@link EndLabelPreprocessor}</dd>
  * </dl>
  * 
@@ -568,10 +567,10 @@ public final class LabelDummySwitcher implements ILayoutProcessor<LGraph> {
         LPort outputPort2 = longEdgeDummy.getPorts(PortType.OUTPUT).iterator().next();
         
         // Store incoming and outgoing edges
-        LEdge[] incomingEdges1 = inputPort1.getIncomingEdges().toArray(new LEdge[1]);
-        LEdge[] outgoingEdges1 = outputPort1.getOutgoingEdges().toArray(new LEdge[1]);
-        LEdge[] incomingEdges2 = inputPort2.getIncomingEdges().toArray(new LEdge[1]);
-        LEdge[] outgoingEdges2 = outputPort2.getOutgoingEdges().toArray(new LEdge[1]);
+        LEdge[] incomingEdges1 = LGraphUtil.toEdgeArray(inputPort1.getIncomingEdges());
+        LEdge[] outgoingEdges1 = LGraphUtil.toEdgeArray(outputPort1.getOutgoingEdges());
+        LEdge[] incomingEdges2 = LGraphUtil.toEdgeArray(inputPort2.getIncomingEdges());
+        LEdge[] outgoingEdges2 = LGraphUtil.toEdgeArray(outputPort2.getOutgoingEdges());
 
         // Put first dummy into second dummy's layer and reroute second dummy's edges to first dummy
         labelDummy.setLayer(dummy2LayerPosition, layer2);

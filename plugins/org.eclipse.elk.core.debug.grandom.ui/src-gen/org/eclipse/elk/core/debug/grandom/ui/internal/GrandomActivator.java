@@ -1,16 +1,17 @@
 /*******************************************************************************
  * Copyright (c) 2018 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.debug.grandom.ui.internal;
 
 import com.google.common.collect.Maps;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
-import com.google.inject.Module;
 import java.util.Collections;
 import java.util.Map;
 import org.apache.log4j.Logger;
@@ -27,6 +28,7 @@ import org.osgi.framework.BundleContext;
  */
 public class GrandomActivator extends AbstractUIPlugin {
 
+	public static final String PLUGIN_ID = "org.eclipse.elk.core.debug.grandom.ui";
 	public static final String ORG_ECLIPSE_ELK_CORE_DEBUG_GRANDOM_GRANDOM = "org.eclipse.elk.core.debug.grandom.GRandom";
 	
 	private static final Logger logger = Logger.getLogger(GrandomActivator.class);
@@ -64,10 +66,10 @@ public class GrandomActivator extends AbstractUIPlugin {
 	
 	protected Injector createInjector(String language) {
 		try {
-			Module runtimeModule = getRuntimeModule(language);
-			Module sharedStateModule = getSharedStateModule();
-			Module uiModule = getUiModule(language);
-			Module mergedModule = Modules2.mixin(runtimeModule, sharedStateModule, uiModule);
+			com.google.inject.Module runtimeModule = getRuntimeModule(language);
+			com.google.inject.Module sharedStateModule = getSharedStateModule();
+			com.google.inject.Module uiModule = getUiModule(language);
+			com.google.inject.Module mergedModule = Modules2.mixin(runtimeModule, sharedStateModule, uiModule);
 			return Guice.createInjector(mergedModule);
 		} catch (Exception e) {
 			logger.error("Failed to create injector for " + language);
@@ -76,22 +78,23 @@ public class GrandomActivator extends AbstractUIPlugin {
 		}
 	}
 	
-	protected Module getRuntimeModule(String grammar) {
+	protected com.google.inject.Module getRuntimeModule(String grammar) {
 		if (ORG_ECLIPSE_ELK_CORE_DEBUG_GRANDOM_GRANDOM.equals(grammar)) {
 			return new GRandomRuntimeModule();
 		}
 		throw new IllegalArgumentException(grammar);
 	}
 	
-	protected Module getUiModule(String grammar) {
+	protected com.google.inject.Module getUiModule(String grammar) {
 		if (ORG_ECLIPSE_ELK_CORE_DEBUG_GRANDOM_GRANDOM.equals(grammar)) {
 			return new GRandomUiModule(this);
 		}
 		throw new IllegalArgumentException(grammar);
 	}
 	
-	protected Module getSharedStateModule() {
+	protected com.google.inject.Module getSharedStateModule() {
 		return new SharedStateModule();
 	}
+	
 	
 }

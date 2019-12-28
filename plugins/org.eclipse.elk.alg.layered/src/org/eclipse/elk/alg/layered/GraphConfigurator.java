@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered;
 
@@ -16,7 +15,6 @@ import java.util.Set;
 import org.eclipse.elk.alg.layered.graph.LGraph;
 import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LNode;
-import org.eclipse.elk.alg.layered.graph.Layer;
 import org.eclipse.elk.alg.layered.intermediate.IntermediateProcessorStrategy;
 import org.eclipse.elk.alg.layered.options.CrossingMinimizationStrategy;
 import org.eclipse.elk.alg.layered.options.GraphCompactionStrategy;
@@ -54,7 +52,7 @@ final class GraphConfigurator {
     /** intermediate processing configuration for basic graphs. */
     private static final LayoutProcessorConfiguration<LayeredPhases, LGraph> BASELINE_PROCESSING_CONFIGURATION =
         LayoutProcessorConfiguration.<LayeredPhases, LGraph>create()
-            .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.NODE_MARGIN_CALCULATOR)
+            .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.INNERMOST_NODE_MARGIN_CALCULATOR)
             .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.LABEL_AND_NODE_SIZE_PROCESSOR)
             .addBefore(LayeredPhases.P5_EDGE_ROUTING,
                     IntermediateProcessorStrategy.LAYER_SIZE_AND_GRAPH_HEIGHT_CALCULATOR);
@@ -121,7 +119,7 @@ final class GraphConfigurator {
                     lgraph.getProperty(LayeredOptions.EDGE_ROUTING) == EdgeRouting.ORTHOGONAL);
         }
         
-        //copy the port constraints to keep a list of original port constraints
+        // copy the port constraints to keep a list of original port constraints
         copyPortContraints(lgraph);
         
         // pre-calculate spacing information
@@ -129,30 +127,21 @@ final class GraphConfigurator {
         lgraph.setProperty(InternalProperties.SPACINGS, spacings);
     }
     
-    private void copyPortContraints(final LGraph graph) {
+    private void copyPortContraints(final LGraph lgraph) {
+        lgraph.getLayerlessNodes().stream()
+            .forEach(lnode -> copyPortConstraints(lnode));
+        lgraph.getLayers().stream()
+            .flatMap(layer -> layer.getNodes().stream())
+            .forEach(lnode -> copyPortConstraints(lnode));
+    }
+    
+    private void copyPortConstraints(final LNode node) {
+        PortConstraints originalPortconstraints = node.getProperty(LayeredOptions.PORT_CONSTRAINTS);
+        node.setProperty(InternalProperties.ORIGINAL_PORT_CONSTRAINTS, originalPortconstraints);
 
-        for (LNode node : graph.getLayerlessNodes()) {
-            PortConstraints originalPortconstraints = node.getProperty(LayeredOptions.PORT_CONSTRAINTS);
-
-            node.setProperty(InternalProperties.ORIGINAL_PORT_CONSTRAINTS, originalPortconstraints);
-
-            LGraph nestedGraph = node.getProperty(InternalProperties.NESTED_LGRAPH);
-            if (nestedGraph != null) {
-                copyPortContraints(nestedGraph);
-            }
-        }
-
-        for (Layer layer : graph.getLayers()) {
-            for (LNode node : layer.getNodes()) {
-                PortConstraints originalPortconstraints = node.getProperty(LayeredOptions.PORT_CONSTRAINTS);
-
-                node.setProperty(InternalProperties.ORIGINAL_PORT_CONSTRAINTS, originalPortconstraints);
-
-                LGraph nestedGraph = node.getProperty(InternalProperties.NESTED_LGRAPH);
-                if (nestedGraph != null) {
-                    copyPortContraints(nestedGraph);
-                }
-            }
+        LGraph nestedGraph = node.getNestedGraph();
+        if (nestedGraph != null) {
+            copyPortContraints(nestedGraph);
         }
     }
     
@@ -244,6 +233,8 @@ final class GraphConfigurator {
         if (graphProperties.contains(GraphProperties.COMMENTS)) {
             configuration
                 .addBefore(LayeredPhases.P1_CYCLE_BREAKING, IntermediateProcessorStrategy.COMMENT_PREPROCESSOR)
+                .addBefore(LayeredPhases.P4_NODE_PLACEMENT,
+                        IntermediateProcessorStrategy.COMMENT_NODE_MARGIN_CALCULATOR)
                 .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.COMMENT_POSTPROCESSOR);
         }
         

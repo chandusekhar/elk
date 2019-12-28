@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2015, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *    spoenemann - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered
 
@@ -51,6 +50,7 @@ algorithm layered(LayeredLayoutProvider) {
 	supports org.eclipse.elk.spacing.labelPort
 	supports org.eclipse.elk.spacing.labelNode
 	supports org.eclipse.elk.spacing.nodeNode = 20
+	supports org.eclipse.elk.spacing.nodeSelfLoop
 	supports org.eclipse.elk.spacing.portPort
 	supports org.eclipse.elk.spacing.individualOverride
 	   documentation "Most parts of the algorithm do not support this yet."
@@ -132,7 +132,6 @@ algorithm layered(LayeredLayoutProvider) {
 	supports org.eclipse.elk.alg.layered.nodePlacement.linearSegments.deflectionDampening
 	supports org.eclipse.elk.alg.layered.edgeRouting.selfLoopDistribution
     supports org.eclipse.elk.alg.layered.edgeRouting.selfLoopOrdering
-    supports org.eclipse.elk.alg.layered.edgeRouting.mergeSelfLoops
 	supports contentAlignment
 	supports org.eclipse.elk.alg.layered.nodePlacement.bk.edgeStraightening
 	supports org.eclipse.elk.alg.layered.compaction.postCompaction.strategy
@@ -491,7 +490,7 @@ group edgeRouting {
         description 
             "Alter the distribution of the loops around the node. It only takes effect for PortConstraints.FREE."
         default = SelfLoopDistributionStrategy.NORTH
-        targets parents
+        targets nodes
     }
     
     option selfLoopOrdering: SelfLoopOrderingStrategy {
@@ -499,15 +498,7 @@ group edgeRouting {
          description "Alter the ordering of the loops they can either be stacked or sequenced.
                 It only takes effect for PortConstraints.FREE."
         default = SelfLoopOrderingStrategy.STACKED
-        targets parents
-    }
-    option mergeSelfLoops: boolean {
-        label "Merge Self-Loops"
-        description "If different self-loops are not important, they can be merged to be displayed on above another. 
-                This saves space and labels will not be crossed if multiple labels are stacked.
-                It only takes effect for PortConstraints.FREE."
-        default = false
-        targets parents
+        targets nodes
     }
 
 }

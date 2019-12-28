@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p3order;
 
@@ -86,7 +85,7 @@ class SweepCopy {
     /**
      * @param lGraph
      */
-    public void transferNodeAndPortOrdersToGraph(final LGraph lGraph, boolean setPortContstraints) {
+    public void transferNodeAndPortOrdersToGraph(final LGraph lGraph, final boolean setPortContstraints) {
         
         // the 'NORTH_OR_SOUTH_PORT' option allows the crossing minimizer to decide 
         // the side a corresponding dummy node is placed on in order to reduce the number of crossings
@@ -114,7 +113,9 @@ class SweepCopy {
                 node.getPorts().clear();
                 node.getPorts().addAll(portOrders.get(i).get(j));
                 if (setPortContstraints) {
-                    node.setProperty(LayeredOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER);
+                    if (!node.getProperty(LayeredOptions.PORT_CONSTRAINTS).isOrderFixed()) {
+                        node.setProperty(LayeredOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_ORDER);
+                    }
                 }
             }
             
@@ -154,8 +155,22 @@ class SweepCopy {
                 // switch the port's side if necessary
                 if ((port.getSide() == PortSide.NORTH) && (dummy.id > origin.id)) {
                     port.setSide(PortSide.SOUTH);
+                    if (port.isExplicitlySuppliedPortAnchor()) {
+                        // Set new coordinates for port anchor since it was switched from NORTH to SOUTH.
+                        // The y coordinate is updated by mirroring the y coordinate
+                        double portHeight =  port.getSize().y;
+                        double anchorY = port.getAnchor().y;
+                        port.getAnchor().y = portHeight - anchorY;
+                    }
                 } else if ((port.getSide() == PortSide.SOUTH) && (origin.id > dummy.id)) {
                     port.setSide(PortSide.NORTH);
+                    if (port.isExplicitlySuppliedPortAnchor()) {
+                        // Set new coordinates for port anchor since it was switched from NORTH to SOUTH.
+                        // The y coordinate is updated by mirroring the y coordinate
+                        double portHeight =  port.getSize().y;
+                        double anchorY = port.getAnchor().y;
+                        port.getAnchor().y =  - (portHeight - anchorY);
+                    }
                 }
                 break;
             }

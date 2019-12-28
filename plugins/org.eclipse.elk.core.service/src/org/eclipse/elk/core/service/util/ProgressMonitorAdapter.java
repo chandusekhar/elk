@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2009, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.service.util;
 
@@ -40,6 +39,7 @@ public class ProgressMonitorAdapter extends BasicProgressMonitor {
      * Creates a progress monitor wrapper with given maximal number of hierarchy levels. Progress
      * is reported to parent monitors only up to the specified hierarchy level.
      * 
+     * @deprecated Use {@link #withMaxHierarchyLevels(int)} instead.
      * @param theprogressMonitor the progress monitor
      * @param maxLevels maximal number of hierarchy levels for which progress is reported
      */
@@ -49,21 +49,6 @@ public class ProgressMonitorAdapter extends BasicProgressMonitor {
     }
     
     /**
-     * Creates a progress monitor wrapper with given maximal number of hierarchy levels. Progress
-     * is reported to parent monitors only up to the specified hierarchy level. The third argument
-     * controls whether any execution time measurements are performed.
-     * 
-     * @param theprogressMonitor the progress monitor
-     * @param maxLevels maximal number of hierarchy levels for which progress is reported
-     * @param measureExecTime whether the execution time shall be measured when the task is done
-     */
-    public ProgressMonitorAdapter(final IProgressMonitor theprogressMonitor, final int maxLevels,
-            final boolean measureExecTime) {
-        super(maxLevels, measureExecTime);
-        this.progressMonitor = theprogressMonitor;
-    }
-
-    /**
      * Reports to the integrated Eclipse progress monitor that the current task begins.
      * 
      * @param name task name
@@ -72,8 +57,9 @@ public class ProgressMonitorAdapter extends BasicProgressMonitor {
      * @param maxHierarchyLevels maximal number of reported hierarchy levels
      */
     @Override
-    protected void doBegin(final String name, final float totalWork,
-            final boolean topInstance, final int maxHierarchyLevels) {
+    protected void doBegin(final String name, final float totalWork, final boolean topInstance,
+            final int maxHierarchyLevels) {
+        
         if (topInstance) {
             progressMonitor.beginTask(name, (int) (totalWork <= 0
                     ? IProgressMonitor.UNKNOWN : totalWork));
@@ -113,17 +99,16 @@ public class ProgressMonitorAdapter extends BasicProgressMonitor {
      *            instance when the sub-task ends
      * @param maxHierarchyLevels the maximal number of hierarchy levels for the parent
      *         progress monitor
-     * @param measureExecTime whether the execution time shall be measured when the task is done
      * @return a new progress monitor instance
      */
     @Override
-    protected BasicProgressMonitor doSubTask(final float work, final int maxHierarchyLevels,
-            final boolean measureExecTime) {
-        if (maxHierarchyLevels > 0) {
-            return new ProgressMonitorAdapter(progressMonitor, maxHierarchyLevels - 1, measureExecTime);
-        } else {
-            return new ProgressMonitorAdapter(progressMonitor, maxHierarchyLevels, measureExecTime);
-        }
+    protected BasicProgressMonitor doSubTask(final float work, final int maxHierarchyLevels) {
+        int newMaxHierarchyLevels = maxHierarchyLevels > 0 ? maxHierarchyLevels - 1 : maxHierarchyLevels;
+        return new ProgressMonitorAdapter(progressMonitor)
+                .withMaxHierarchyLevels(newMaxHierarchyLevels)
+                .withLogging(isLoggingEnabled())
+                .withLogPersistence(isLogPersistenceEnabled())
+                .withExecutionTimeMeasurement(isExecutionTimeMeasured());
     }
 
     /**
@@ -135,8 +120,7 @@ public class ProgressMonitorAdapter extends BasicProgressMonitor {
      * @param topInstance if true, this progress monitor is the top instance
      */
     @Override
-    protected void doWorked(final float completedWork, final float totalWork,
-            final boolean topInstance) {
+    protected void doWorked(final float completedWork, final float totalWork, final boolean topInstance) {
         if (topInstance) {
             int newWork = (int) completedWork;
             if (newWork > submittedWork) {

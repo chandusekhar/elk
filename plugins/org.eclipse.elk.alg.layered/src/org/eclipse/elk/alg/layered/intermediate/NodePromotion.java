@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -449,7 +448,7 @@ public class NodePromotion implements ILayoutProcessor<LGraph> {
         // The laLaLayer, born in the far away laLaLand, traveled here to be of special use for
         // our layering. It is added to the layeredGraph with reversed IDs so they fit to the IDs
         // stored in the nodes but can also be properly assigned compliant with the layering used in
-        // KLay Layered.
+        // ELK Layered.
         List<Layer> layList = Lists.newArrayList();
         for (int i = 0; i <= maxHeight; i++) {
             Layer laLaLayer = new Layer(layeredGraph);

@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *    spoenemann - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk
 
@@ -90,6 +89,7 @@ algorithm fixed (FixedLayoutProvider) {
     supports bendPoints
     supports nodeSize.constraints
     supports nodeSize.minimum
+    supports nodeSize.fixedGraphSize
 }
 algorithm box (BoxLayoutProvider) {
     label "Box Layout"
@@ -294,6 +294,13 @@ group spacing {
         targets parents
         legacyIds de.cau.cs.kieler.spacing
     }
+    option nodeSelfLoop: double {
+        label "Node Self Loop Spacing"
+        description "Spacing to be preserved between a node and its self loops."
+        default = 10
+        lowerBound = 0.0
+        targets parents
+    }
     option portPort: double {
         label "Port Spacing"
         description "Spacing between pairs of ports of the same node."
@@ -447,6 +454,13 @@ group nodeSize {
         description "The minimal size to which a node can be reduced."
         default = new KVector(0, 0)
         targets nodes
+    }
+    option fixedGraphSize: boolean {
+        label "Fixed Graph Size"
+        description "By default, the fixed layout provider will enlarge a graph until it is large enough to contain
+            its children. If this option is set, it won't do so."
+        default = false
+        targets parents
     }
 }
 //------- PROGRAMMATIC OPTIONS

@@ -1,9 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2017 TypeFox GmbH (http://www.typefox.io) and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.graph.text
 
@@ -27,7 +29,7 @@ final class ElkGraphTextUtil {
      * might be ambiguous: e.g. a port of a composite node can be handled both by the algorithm that
      * arranges that node and the algorithm that arranges its container node.
      */
-    public static def getAlgorithm(ElkGraphElement element) {
+    static def getAlgorithm(ElkGraphElement element) {
         val node = switch element {
             ElkNode:
                 element

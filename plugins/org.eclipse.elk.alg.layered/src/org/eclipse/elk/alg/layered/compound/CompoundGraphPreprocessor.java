@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2013, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.compound;
 
@@ -153,7 +152,7 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
         List<ExternalPort> containedExternalPorts = Lists.newArrayList();
         
         for (LNode node : graph.getLayerlessNodes()) {
-            LGraph nestedGraph = node.getProperty(InternalProperties.NESTED_LGRAPH);
+            LGraph nestedGraph = node.getNestedGraph();
             if (nestedGraph != null) {
                 // recursively process the child graph
                 List<ExternalPort> childPorts = transformHierarchyEdges(nestedGraph, node);
@@ -542,7 +541,7 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
             for (LPort childPort : childNode.getPorts()) {
                 // we treat outgoing and incoming edges separately
                 ExternalPort currentExternalOutputPort = null;
-                for (LEdge outEdge : childPort.getOutgoingEdges().toArray(new LEdge[0])) {
+                for (LEdge outEdge : LGraphUtil.toEdgeArray(childPort.getOutgoingEdges())) {
                     if (!LGraphUtil.isDescendant(outEdge.getTarget().getNode(), parentNode)) {
                         // the edge goes to the outside or to the parent node itself, so create an
                         // external port if necessary and introduce a new dummy edge
@@ -565,7 +564,7 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
                 }
 
                 ExternalPort currentExternalInputPort = null;
-                for (LEdge inEdge : childPort.getIncomingEdges().toArray(new LEdge[0])) {
+                for (LEdge inEdge : LGraphUtil.toEdgeArray(childPort.getIncomingEdges())) {
                     if (!LGraphUtil.isDescendant(inEdge.getSource().getNode(), parentNode)) {
                         // the edge comes from the outside or from the parent node itself, so create an
                         // external port if necessary and introduce a new dummy edge
@@ -614,8 +613,7 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
         // Iterate over the edges and look for an inside self loop
         for (LPort lport : node.getPorts()) {
             // Avoid ConcurrentModificationExceptions
-            LEdge[] outEdges = lport.getOutgoingEdges().toArray(
-                    new LEdge[lport.getOutgoingEdges().size()]);
+            LEdge[] outEdges = LGraphUtil.toEdgeArray(lport.getOutgoingEdges());
             
             for (LEdge outEdge : outEdges) {
                 boolean isSelfLoop = outEdge.getTarget().getNode() == node;
@@ -929,8 +927,6 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
             break;
         }
         port.setProperty(LayeredOptions.PORT_BORDER_OFFSET, dummyNode.getProperty(LayeredOptions.PORT_BORDER_OFFSET));
-        dummyNode.setProperty(InternalProperties.ORIGIN, port);
-        dummyNodeMap.put(port, dummyNode);
         return port;
     }
     

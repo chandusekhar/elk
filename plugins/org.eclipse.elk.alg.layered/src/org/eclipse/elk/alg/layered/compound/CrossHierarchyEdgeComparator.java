@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2014, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.compound;
 
@@ -14,7 +13,6 @@ import java.util.Comparator;
 
 import org.eclipse.elk.alg.layered.graph.LGraph;
 import org.eclipse.elk.alg.layered.graph.LNode;
-import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.PortType;
 
 /**
@@ -72,7 +70,7 @@ final class CrossHierarchyEdgeComparator implements Comparator<CrossHierarchyEdg
             if (currentGraph == topLevelGraph) {
                 return level;
             }
-            LNode currentNode = currentGraph.getProperty(InternalProperties.PARENT_LNODE);
+            LNode currentNode = currentGraph.getParentNode();
             if (currentNode == null) {
                 // the given node is not an ancestor of the graph node
                 throw new IllegalArgumentException();

@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2016, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *    Christoph Daniel Schulze - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.ui.rendering;
 
@@ -32,7 +31,7 @@ public class GraphRenderingConfigurator {
     protected static final int MIN_FONT_HEIGHT = 3;
     
     // CHECKSTYLEOFF Visibility
-    // We think it alright for subclasses to directly set these.
+    // We think it is alright for subclasses to directly set these.
     
     /** border color for nodes. */
     protected Color nodeBorderColor;
@@ -40,22 +39,29 @@ public class GraphRenderingConfigurator {
     protected Color nodeFillColor;
     /** font used for node labels. */
     protected Font nodeLabelFont;
+    private int nodeFontSize;
     /** border color used for ports. */
     protected Color portBorderColor;
     /** fill color used for ports. */
     protected Color portFillColor;
     /** font used for port labels. */
     protected Font portLabelFont;
+    private int portFontSize;
     /** color used for edges. */
     protected Color edgeColor;
     /** font used for edge labels. */
     protected Font edgeLabelFont;
+    private int edgeFontSize;
     /** border color for labels. */
     protected Color labelBorderColor;
     /** fill color for labels. */
     protected Color labelFillColor;
     /** text color for labels. */
     protected Color labelTextColor;
+    /** color for area out of bounds. */
+    protected Color outOfBoundsColor;
+    /** color for the parent node. */
+    protected Color rootNodeColor;
     
     // CHECKSTYLEON Visibility
     
@@ -71,6 +77,7 @@ public class GraphRenderingConfigurator {
      */
     public GraphRenderingConfigurator(final Display display) {
         this.display = display;
+        initialize();
     }
     
     
@@ -93,32 +100,28 @@ public class GraphRenderingConfigurator {
     /**
      * Called once by the constructor. Override to create custom resources. Be sure to call the
      * super class implementation unless the configuration methods only return custom resources.
-     * 
-     * @param scale
-     *            Scaling used by the graph renderer. Can be used to adapt font sizes.
      */
-    public void initialize(final double scale) {
+    protected void initialize() {
         // CHECKSTYLEOFF MagicNumber
         // No sense in introducing constants for the RGB values below...
         
-        int nodeFontSize = Math.max((int) Math.round(NODE_FONT_SIZE * scale), 2);
-        nodeLabelFont = new Font(display, "sans", nodeFontSize, SWT.NORMAL);
+        nodeLabelFont = new Font(display, "sans", NODE_FONT_SIZE, SWT.NORMAL);
         nodeBorderColor = new Color(display, 2, 15, 3);
         nodeFillColor = new Color(display, 168, 220, 190);
         
-        int portFontSize = Math.max((int) Math.round(PORT_FONT_SIZE * scale), 2);
-        portLabelFont = new Font(display, "sans", portFontSize, SWT.NORMAL);
+        portLabelFont = new Font(display, "sans", PORT_FONT_SIZE, SWT.NORMAL);
         portBorderColor = new Color(display, 2, 9, 40);
         portFillColor = new Color(display, 2, 9, 40);
         
-        int edgeFontSize = Math.max((int) Math.round(EDGE_FONT_SIZE * scale), 2);
-        edgeLabelFont = new Font(display, "sans", edgeFontSize, SWT.NORMAL);
+        edgeLabelFont = new Font(display, "sans", EDGE_FONT_SIZE, SWT.NORMAL);
         edgeColor = new Color(display, 23, 36, 54);
         
         labelBorderColor = new Color(display, 63, 117, 67);
         labelFillColor = null;
         labelTextColor = new Color(display, 2, 15, 3);
         
+        outOfBoundsColor = new Color(display, 255, 205, 210);
+        rootNodeColor = new Color(display, 240, 240, 240);
         // CHECKSTYLEON MagicNumber
     }
     
@@ -164,6 +167,48 @@ public class GraphRenderingConfigurator {
         
         if (edgeLabelFont != null) {
             edgeLabelFont.dispose();
+        }
+        
+        if (outOfBoundsColor != null) {
+            outOfBoundsColor.dispose();
+        }
+        
+        if (rootNodeColor != null) {
+            rootNodeColor.dispose();
+        }
+    }
+    
+    /**
+     * Change the scale of the graph rendering.
+     * 
+     * @param scale the scale value for font sizes
+     */
+    public void setScale(final double scale) {
+        int newNodeFontSize = Math.max((int) Math.round(NODE_FONT_SIZE * scale), 2);
+        if (newNodeFontSize != nodeFontSize) {
+            if (nodeLabelFont != null) {
+                nodeLabelFont.dispose();
+            }
+            nodeLabelFont = new Font(display, "sans", newNodeFontSize, SWT.NORMAL);
+            nodeFontSize = newNodeFontSize;
+        }
+        
+        int newPortFontSize = Math.max((int) Math.round(PORT_FONT_SIZE * scale), 2);
+        if (newPortFontSize != portFontSize) {
+            if (portLabelFont != null) {
+                portLabelFont.dispose();
+            }
+            portLabelFont = new Font(display, "sans", newPortFontSize, SWT.NORMAL);
+            portFontSize = newPortFontSize;
+        }
+        
+        int newEdgeFontSize = Math.max((int) Math.round(EDGE_FONT_SIZE * scale), 2);
+        if (newEdgeFontSize != edgeFontSize) {
+            if (edgeLabelFont != null) {
+                edgeLabelFont.dispose();
+            }
+            edgeLabelFont = new Font(display, "sans", newEdgeFontSize, SWT.NORMAL);
+            edgeFontSize = newEdgeFontSize;
         }
     }
     
@@ -218,4 +263,11 @@ public class GraphRenderingConfigurator {
         return labelTextColor;
     }
     
+    public final Color getOutOfBoundsColor() {
+        return outOfBoundsColor;
+    }
+    
+    public final Color getRootNodeColor() {
+        return rootNodeColor;
+    }
 }

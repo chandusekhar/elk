@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2014, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2014, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.graph;
 
@@ -35,8 +34,6 @@ import org.eclipse.elk.graph.properties.IPropertyHolder;
 
 /**
  * Utility class for importing graphs into the {@link LGraph} format.
- * 
- * @author msp
  */
 public final class LGraphUtil {
     
@@ -44,6 +41,36 @@ public final class LGraphUtil {
      * Hidden constructor to avoid instantiation.
      */
     private LGraphUtil() { }
+    
+    /**
+     * Create a new array by copying the content of the given node collection.
+     * 
+     * @param nodes a collection of nodes
+     * @return an array of nodes
+     */
+    public static LNode[] toNodeArray(final Collection<LNode> nodes) {
+        return nodes.toArray(new LNode[nodes.size()]);
+    }
+    
+    /**
+     * Create a new array by copying the content of the given edge collection.
+     * 
+     * @param edges a collection of edges
+     * @return an array of edges
+     */
+    public static LEdge[] toEdgeArray(final Collection<LEdge> edges) {
+        return edges.toArray(new LEdge[edges.size()]);
+    }
+    
+    /**
+     * Create a new array by copying the content of the given port collection.
+     * 
+     * @param ports a collection of ports
+     * @return an array of ports
+     */
+    public static LPort[] toPortArray(final Collection<LPort> ports) {
+        return ports.toArray(new LPort[ports.size()]);
+    }
     
     ///////////////////////////////////////////////////////////////////////////////
     // Node Resizing
@@ -384,7 +411,7 @@ public final class LGraphUtil {
     // Handling of Ports
 
     /**
-     * Create a port for an edge that is not connected to a port. This is necessary because KLay
+     * Create a port for an edge that is not connected to a port. This is necessary because ELK
      * Layered wants all edges to have a source port and a target port. The port side is computed
      * from the given absolute end point position of the edge.
      * 
@@ -675,7 +702,7 @@ public final class LGraphUtil {
             portAnchor.y = anchorPos.y;
             
             // Since we have applied an explicit anchor, assume the user knows what they are doing and fix it
-            port.setAnchorFixed(true);
+            port.setExplicitlySuppliedPortAnchor(true);
         } else if (portConstraints.isSideFixed() && portSide != PortSide.UNDEFINED) {
             // set the anchor point according to the port side
             switch (portSide) {
@@ -780,13 +807,6 @@ public final class LGraphUtil {
         dummy.setProperty(LayeredOptions.PORT_BORDER_OFFSET,
                 propertyHolder.getProperty(LayeredOptions.PORT_BORDER_OFFSET));
         
-        // set the anchor point
-        KVector anchor = propertyHolder.getProperty(LayeredOptions.PORT_ANCHOR);
-        if (anchor == null) {
-            anchor = new KVector(portSize.x / 2, portSize.y / 2);
-        }
-        dummy.setProperty(LayeredOptions.PORT_ANCHOR, anchor);
-        
         LPort dummyPort = new LPort();
         dummyPort.setNode(dummy);
         
@@ -802,6 +822,18 @@ public final class LGraphUtil {
             propertyHolder.setProperty(LayeredOptions.PORT_SIDE, finalExternalPortSide);
         }
         
+        // Retrieve the anchor point, possibly to be modified later
+        KVector anchor = new KVector();
+        boolean explicitAnchor = false;
+        
+        if (propertyHolder.hasProperty(LayeredOptions.PORT_ANCHOR)) {
+            anchor.set(propertyHolder.getProperty(LayeredOptions.PORT_ANCHOR));
+            explicitAnchor = true;
+            
+        } else {
+            anchor.set(portSize.x / 2, portSize.y / 2);
+        }
+        
         // With the port side at hand, set the necessary properties and place the dummy's port
         // at the dummy's center
         switch (finalExternalPortSide) {
@@ -810,7 +842,9 @@ public final class LGraphUtil {
             dummy.setProperty(InternalProperties.EDGE_CONSTRAINT, EdgeConstraint.OUTGOING_ONLY);
             dummy.getSize().y = portSize.y;
             dummyPort.setSide(PortSide.EAST);
-            dummyPort.getPosition().y = anchor.y;
+            if (!explicitAnchor) {
+                anchor.x = portSize.x;
+            }
             break;
         
         case EAST:
@@ -818,27 +852,36 @@ public final class LGraphUtil {
             dummy.setProperty(InternalProperties.EDGE_CONSTRAINT, EdgeConstraint.INCOMING_ONLY);
             dummy.getSize().y = portSize.y;
             dummyPort.setSide(PortSide.WEST);
-            dummyPort.getPosition().y = anchor.y;
+            if (!explicitAnchor) {
+                anchor.x = 0;
+            }
             break;
         
         case NORTH:
             dummy.setProperty(InternalProperties.IN_LAYER_CONSTRAINT, InLayerConstraint.TOP);
             dummy.getSize().x = portSize.x;
             dummyPort.setSide(PortSide.SOUTH);
-            dummyPort.getPosition().x = anchor.x;
+            if (!explicitAnchor) {
+                anchor.y = portSize.y;
+            }
             break;
         
         case SOUTH:
             dummy.setProperty(InternalProperties.IN_LAYER_CONSTRAINT, InLayerConstraint.BOTTOM);
             dummy.getSize().x = portSize.x;
             dummyPort.setSide(PortSide.NORTH);
-            dummyPort.getPosition().x = anchor.x;
+            if (!explicitAnchor) {
+                anchor.y = 0;
+            }
             break;
         
         default:
             // Should never happen!
             assert false : finalExternalPortSide;
         }
+        
+        // Finally apply the anchor by setting the dummy port position accordingly
+        dummyPort.getPosition().set(anchor);
         
         if (portConstraints.isOrderFixed()) {
             // The order of ports is fixed in some way, so what we will have to do is to remember information about it
@@ -963,13 +1006,13 @@ public final class LGraphUtil {
      */
     public static boolean isDescendant(final LNode child, final LNode parent) {
         LNode current = child;
-        LNode next = current.getGraph().getProperty(InternalProperties.PARENT_LNODE);
+        LNode next = current.getGraph().getParentNode();
         while (next != null) {
             current = next;
             if (current == parent) {
                 return true;
             }
-            next = current.getGraph().getProperty(InternalProperties.PARENT_LNODE);
+            next = current.getGraph().getParentNode();
         }
         return false;
     }
@@ -996,7 +1039,7 @@ public final class LGraphUtil {
         LNode node;
         do {
             point.add(graph.getOffset());
-            node = graph.getProperty(InternalProperties.PARENT_LNODE);
+            node = graph.getParentNode();
             if (node != null) {
                 LPadding padding = graph.getPadding();
                 point.add(padding.left, padding.top);
@@ -1009,7 +1052,7 @@ public final class LGraphUtil {
         graph = newGraph;
         do {
             point.sub(graph.getOffset());
-            node = graph.getProperty(InternalProperties.PARENT_LNODE);
+            node = graph.getParentNode();
             if (node != null) {
                 LPadding padding = graph.getPadding();
                 point.sub(padding.left, padding.top);

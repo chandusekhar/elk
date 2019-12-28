@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2008, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.data;
 
@@ -43,43 +42,8 @@ public final class LayoutMetaDataService {
     /** the layout data service instance, which is created lazily. */
     private static LayoutMetaDataService instance;
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
     private LayoutMetaDataService() {
-        
-        // every class that implements IDataObject 
-        // or is used for internal properties must be registered here
-        
-        // IDataObject
-        ElkReflect.register(KVector.class, 
-                () -> new KVector(), 
-                (v) -> ((KVector) v).clone());
-        ElkReflect.register(KVectorChain.class, 
-                () -> new KVectorChain(), 
-                (vc) -> new KVectorChain((KVectorChain) vc));
-        ElkReflect.register(ElkMargin.class, 
-                () -> new ElkMargin(),
-                (m) -> new ElkMargin((ElkMargin) m));
-        ElkReflect.register(ElkPadding.class, 
-                () -> new ElkPadding(),
-                (p) -> new ElkPadding((ElkPadding) p));
-        
-        // Commonly used classes for internal properties
-        ElkReflect.register(ArrayList.class, 
-                () -> new ArrayList(),
-                (al) -> ((ArrayList) al).clone());
-        ElkReflect.register(LinkedList.class, 
-                () -> new LinkedList(),
-                (ll) -> Lists.newLinkedList((LinkedList) ll));
-        ElkReflect.register(HashSet.class, 
-                () -> new HashSet(),
-                (hs) -> Sets.newHashSet((HashSet) hs));
-        ElkReflect.register(LinkedHashSet.class, 
-                () -> new LinkedHashSet(),
-                (hs) -> Sets.newLinkedHashSet((HashSet) hs));
-        ElkReflect.register(TreeSet.class, 
-                () -> new TreeSet(),
-                (ts) -> Sets.newTreeSet((TreeSet) ts));
-        
+        initElkReflect();
     }
     
     /**
@@ -117,6 +81,47 @@ public final class LayoutMetaDataService {
             }
             instance = null;
         }
+    }
+    
+    /**
+     * Registers all basic data types with {@link ElkReflect}. This method should only be called from the outside if
+     * layout algorithms are supposed to be called directly, which we don't recommend.
+     */
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    public static void initElkReflect() {
+        // every class that implements IDataObject 
+        // or is used for internal properties must be registered here
+        
+        // IDataObject
+        ElkReflect.register(KVector.class, 
+                () -> new KVector(), 
+                (v) -> ((KVector) v).clone());
+        ElkReflect.register(KVectorChain.class, 
+                () -> new KVectorChain(), 
+                (vc) -> new KVectorChain((KVectorChain) vc));
+        ElkReflect.register(ElkMargin.class, 
+                () -> new ElkMargin(),
+                (m) -> new ElkMargin((ElkMargin) m));
+        ElkReflect.register(ElkPadding.class, 
+                () -> new ElkPadding(),
+                (p) -> new ElkPadding((ElkPadding) p));
+        
+        // Commonly used classes for internal properties
+        ElkReflect.register(ArrayList.class, 
+                () -> new ArrayList(),
+                (al) -> ((ArrayList) al).clone());
+        ElkReflect.register(LinkedList.class, 
+                () -> new LinkedList(),
+                (ll) -> Lists.newLinkedList((LinkedList) ll));
+        ElkReflect.register(HashSet.class, 
+                () -> new HashSet(),
+                (hs) -> Sets.newHashSet((HashSet) hs));
+        ElkReflect.register(LinkedHashSet.class, 
+                () -> new LinkedHashSet(),
+                (hs) -> Sets.newLinkedHashSet((HashSet) hs));
+        ElkReflect.register(TreeSet.class, 
+                () -> new TreeSet(),
+                (ts) -> Sets.newTreeSet((TreeSet) ts));
     }
 
     /**

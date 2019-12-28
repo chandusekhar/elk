@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.compaction.oned;
 
@@ -28,7 +27,7 @@ public interface ISpacingsHandler<T extends CNode> {
      *            the second involved node.
      * @return the horizontal spacing that should be preserve between the two passed nodes.
      */
-    double getHorizontalSpacing(final T cNode1, final T cNode2);
+    double getHorizontalSpacing(T cNode1, T cNode2);
 
     /**
      * @param cNode1
@@ -37,7 +36,7 @@ public interface ISpacingsHandler<T extends CNode> {
      *            the second involved node.
      * @return the vertical spacing that should be preserved between the two passed nodes.
      */
-    double getVerticalSpacing(final T cNode1, final T cNode2);
+    double getVerticalSpacing(T cNode1, T cNode2);
 
     /**
      * A default implementation, returning for either spacing the maximum of the two desired

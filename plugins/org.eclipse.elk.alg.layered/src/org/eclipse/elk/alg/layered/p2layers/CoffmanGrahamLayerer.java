@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *    Ulf Rueegg - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p2layers;
 
@@ -101,7 +100,7 @@ public class CoffmanGrahamLayerer implements ILayoutPhase<LayeredPhases, LGraph>
         // -------------------------------
         // #2 Compute topological ordering
         // -------------------------------
-        PriorityQueue<LNode> sources = new PriorityQueue<LNode>((u, v) -> compareNodesInTopo(u, v));
+        PriorityQueue<LNode> sources = new PriorityQueue<LNode>(this::compareNodesInTopo);
 
         // for each node, determine its current in-degree and remember initial sources
         for (LNode v : layeredGraph.getLayerlessNodes()) {

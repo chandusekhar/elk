@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -19,6 +18,7 @@ import java.util.Map;
 
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
+import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.LPort;
@@ -155,7 +155,7 @@ public final class HierarchicalPortConstraintProcessor implements ILayoutProcess
      */
     private void processEasternAndWesternPortDummies(final Layer layer) {
         // Put the nodes into an array
-        LNode[] nodes = layer.getNodes().toArray(new LNode[layer.getNodes().size()]);
+        LNode[] nodes = LGraphUtil.toNodeArray(layer.getNodes());
         
         // Sort the array; hierarchical port dummies are at the top, sorted by
         // position or ratio in ascending order

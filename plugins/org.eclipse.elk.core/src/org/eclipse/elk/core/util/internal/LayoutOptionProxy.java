@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2012, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2012, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.util.internal;
 
@@ -19,8 +18,6 @@ import org.eclipse.elk.graph.properties.Property;
 
 /**
  * A proxy class for lazy resolving of layout options.
- *
- * @author msp
  */
 public final class LayoutOptionProxy implements IPropertyValueProxy {
     
@@ -50,34 +47,31 @@ public final class LayoutOptionProxy implements IPropertyValueProxy {
         propertyHolder.setProperty(property, proxy);
     }
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     @SuppressWarnings("unchecked")
     public <T> T resolveValue(final IProperty<T> property) {
-        LayoutOptionData optionData;
-        if (property instanceof LayoutOptionData) {
-            optionData = (LayoutOptionData) property;
-        } else {
-            optionData = LayoutMetaDataService.getInstance().getOptionData(property.getId());
+        if (property != null) {
+            LayoutOptionData optionData;
+            
+            if (property instanceof LayoutOptionData) {
+                optionData = (LayoutOptionData) property;
+            } else {
+                optionData = LayoutMetaDataService.getInstance().getOptionData(property.getId());
+            }
+            
+            if (optionData != null) {
+                return (T) optionData.parseValue(value);
+            }
         }
-        if (optionData != null) {
-            return (T) optionData.parseValue(value);
-        }
+        
         return null;
     }
     
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String toString() {
         return value;
     }
     
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public boolean equals(final Object object) {
         if (object instanceof LayoutOptionProxy) {
@@ -87,9 +81,6 @@ public final class LayoutOptionProxy implements IPropertyValueProxy {
         return false;
     }
     
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public int hashCode() {
         if (value != null) {

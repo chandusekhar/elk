@@ -1,19 +1,20 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
 import org.eclipse.elk.alg.layered.graph.LGraph;
 import org.eclipse.elk.alg.layered.graph.LMargin;
 import org.eclipse.elk.alg.layered.graph.LNode;
+import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.Layer;
+import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
@@ -73,9 +74,17 @@ public final class LayerSizeAndGraphHeightCalculator implements ILayoutProcessor
             // Calculate the layer's height
             LNode firstNode = layer.getNodes().get(0);
             double top = firstNode.getPosition().y - firstNode.getMargin().top;
+            if (firstNode.getType() == NodeType.EXTERNAL_PORT) {
+                // Consider port spacing options for first node
+                top -= layeredGraph.getProperty(LayeredOptions.SPACING_PORTS_SURROUNDING).getTop();
+            }
             LNode lastNode = layer.getNodes().get(layer.getNodes().size() - 1);
             double bottom = lastNode.getPosition().y + lastNode.getSize().y
                     + lastNode.getMargin().bottom;
+            if (lastNode.getType() == NodeType.EXTERNAL_PORT) {
+                // Consider port spacing options for last node
+                bottom += layeredGraph.getProperty(LayeredOptions.SPACING_PORTS_SURROUNDING).getBottom();
+            }
             layerSize.y = bottom - top;
             
             // Update the lowest and highest encountered Y coordinate

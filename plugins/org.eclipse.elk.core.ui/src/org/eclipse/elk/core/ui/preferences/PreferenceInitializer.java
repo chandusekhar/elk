@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2010, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.ui.preferences;
 
@@ -20,14 +19,9 @@ import org.eclipse.jface.preference.IPreferenceStore;
 
 /**
  * Preference initializer for the ELK plugins.
- *
- * @author msp
  */
 public class PreferenceInitializer extends AbstractPreferenceInitializer {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void initializeDefaultPreferences() {
         IPreferenceStore servicePrefStore = ElkServicePlugin.getInstance().getPreferenceStore();
@@ -38,8 +32,9 @@ public class PreferenceInitializer extends AbstractPreferenceInitializer {
         uiPrefStore.setDefault(LayoutHandler.PREF_PROGRESS, false);
         uiPrefStore.setDefault(LayoutViewPart.PREF_CATEGORIES, true);
         uiPrefStore.setDefault(LayoutViewPart.PREF_ADVANCED, false);
-        servicePrefStore.setDefault(DiagramLayoutEngine.PREF_DEBUG_OUTPUT, false);
-        servicePrefStore.setDefault(DiagramLayoutEngine.PREF_EXEC_TIME_MEASUREMENT, false);
+        servicePrefStore.setDefault(DiagramLayoutEngine.PREF_DEBUG_STORE, false);
+        servicePrefStore.setDefault(DiagramLayoutEngine.PREF_DEBUG_LOGGING, false);
+        servicePrefStore.setDefault(DiagramLayoutEngine.PREF_DEBUG_EXEC_TIME, false);
     }
 
 }

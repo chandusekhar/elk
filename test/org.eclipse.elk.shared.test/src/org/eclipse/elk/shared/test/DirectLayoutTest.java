@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.shared.test;
 
@@ -14,6 +13,7 @@ import org.eclipse.elk.alg.layered.LayeredLayoutProvider;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.test.GraphTestUtils;
 import org.eclipse.elk.core.AbstractLayoutProvider;
+import org.eclipse.elk.core.data.LayoutMetaDataService;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.PortConstraints;
 import org.eclipse.elk.core.options.PortSide;
@@ -22,12 +22,19 @@ import org.eclipse.elk.core.util.BasicProgressMonitor;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
 import org.eclipse.elk.graph.ElkNode;
 import org.eclipse.elk.graph.ElkPort;
+import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  * Test and demonstration of 'Using Layout Algorithms Directly'.
  */
 public class DirectLayoutTest {
+    
+    @BeforeClass
+    public static void setup() {
+        LayoutMetaDataService.initElkReflect();
+    }
 
     /**
      * Test a plain Java layout using the ELK Layered algorithm.
@@ -51,7 +58,11 @@ public class DirectLayoutTest {
         layoutProvider.layout(parentNode, progressMonitor);
 
         // execute a trivial junit test
-        GraphTestUtils.checkNodeCoordinates(parentNode);
+        for (ElkNode child : parentNode.getChildren()) {
+            if (child.getX() <= 0 || child.getY() <= 0) {
+                Assert.fail("Not all node coordinates have been set properly.");
+            }
+        }
         
         // output layout information
         printLayoutInfo(parentNode, progressMonitor);

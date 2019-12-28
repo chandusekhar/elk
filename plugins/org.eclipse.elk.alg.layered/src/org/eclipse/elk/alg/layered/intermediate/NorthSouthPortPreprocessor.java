@@ -1,9 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -14,6 +16,7 @@ import java.util.List;
 
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
+import org.eclipse.elk.alg.layered.graph.LGraphUtil;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.LPort;
@@ -157,7 +160,7 @@ public final class NorthSouthPortPreprocessor implements ILayoutProcessor<LGraph
             pointer = -1;
 
             // Iterate through the nodes (use an array to avoid concurrent modification exceptions)
-            LNode[] nodeArray = layer.getNodes().toArray(new LNode[layer.getNodes().size()]);
+            LNode[] nodeArray = LGraphUtil.toNodeArray(layer.getNodes());
             for (LNode node : nodeArray) {
                 pointer++;
 
@@ -539,8 +542,7 @@ public final class NorthSouthPortPreprocessor implements ILayoutProcessor<LGraph
             dummyInputPort.setNode(dummy);
 
             // Reroute edges
-            LEdge[] edgeArray =
-                    inPort.getIncomingEdges().toArray(new LEdge[inPort.getIncomingEdges().size()]);
+            LEdge[] edgeArray = LGraphUtil.toEdgeArray(inPort.getIncomingEdges());
             for (LEdge edge : edgeArray) {
                 edge.setTarget(dummyInputPort);
             }
@@ -563,9 +565,7 @@ public final class NorthSouthPortPreprocessor implements ILayoutProcessor<LGraph
             dummyOutputPort.setNode(dummy);
 
             // Reroute edges
-            LEdge[] edgeArray =
-                    outPort.getOutgoingEdges()
-                            .toArray(new LEdge[outPort.getOutgoingEdges().size()]);
+            LEdge[] edgeArray = LGraphUtil.toEdgeArray(outPort.getOutgoingEdges());
             for (LEdge edge : edgeArray) {
                 edge.setSource(dummyOutputPort);
             }

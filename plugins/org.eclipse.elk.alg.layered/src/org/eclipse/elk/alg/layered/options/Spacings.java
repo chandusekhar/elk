@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.options;
 
@@ -20,7 +19,7 @@ import org.eclipse.elk.graph.properties.IPropertyHolder;
 /**
  * FIXME 
  * Container class for a variety of spacing values that are either specified in the general
- * {@link LayeredOptions} class or KLay Layered's dedicated {@link LayeredOptions} class.
+ * {@link LayeredOptions} class or ELK Layered's dedicated {@link LayeredOptions} class.
  * 
  * This class allows to either select the recorded spacing values directly or to query for spacing
  * values using one of the convenience methods. The methods do not provide results for every

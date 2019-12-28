@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2016 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.p3order;
 
@@ -78,7 +77,7 @@ public class GraphInfoHolder implements IInitializable {
         currentNodeOrder = graph.toNodeArray();
         
         // Hierarchy information.
-        parent = lGraph.getProperty(InternalProperties.PARENT_LNODE);
+        parent = lGraph.getParentNode();
         hasParent = parent != null;
         parentGraphData = hasParent ? graphs.get(parent.getGraph().id) : null;
         Set<GraphProperties> graphProperties = graph.getProperty(InternalProperties.GRAPH_PROPERTIES);
@@ -256,7 +255,7 @@ public class GraphInfoHolder implements IInitializable {
     @Override
     public void initAtNodeLevel(final int l, final int n, final LNode[][] nodeOrder) {
         LNode node = nodeOrder[l][n];
-        LGraph nestedGraph = node.getProperty(InternalProperties.NESTED_LGRAPH);
+        LGraph nestedGraph = node.getNestedGraph();
         if (nestedGraph != null) {
             childGraphs.add(nestedGraph);
         }

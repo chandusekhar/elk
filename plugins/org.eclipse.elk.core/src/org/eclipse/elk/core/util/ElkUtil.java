@@ -1,12 +1,11 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * Copyright (c) 2008, 2019 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.util;
 
@@ -18,6 +17,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
@@ -369,7 +369,9 @@ public final class ElkUtil {
 
         node.setDimensions(scalingFactor * node.getWidth(), scalingFactor * node.getHeight());
 
-        for (ElkShape shape : Iterables.concat(node.getPorts(), node.getLabels())) {
+        final Iterable<ElkLabel> portLabels = Iterables.concat(
+                Iterables.transform(node.getPorts(), p -> p.getLabels()));
+        for (ElkShape shape : Iterables.concat(node.getLabels(), node.getPorts(), portLabels)) {
             shape.setLocation(scalingFactor * shape.getX(), scalingFactor * shape.getY());
             shape.setDimensions(scalingFactor * shape.getWidth(), scalingFactor * shape.getHeight());
 
@@ -461,7 +463,8 @@ public final class ElkUtil {
                 }
 
                 KVector offset = reverse
-                        ? new KVector(sectionPoints.get(sectionPoints.size() - 1)).sub(otherPoints.get(otherPoints.size() - 1))
+                        ? new KVector(sectionPoints.get(sectionPoints.size() - 1))
+                                .sub(otherPoints.get(otherPoints.size() - 1))
                         : new KVector(sectionPoints.get(0)).sub(otherPoints.get(0));
 
                 offsetMap.put(otherSection, offset);
@@ -590,6 +593,34 @@ public final class ElkUtil {
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // COORDINATE-SYSTEM AND TYPE "CONVERSION"
+    
+    /**
+     * Returns the absolute position of the given element. For nodes and ports, this is exactly what you would expect.
+     * Edges don't exactly have an absolute position, so we simply return the absolute position of their containign
+     * node. For labels, we walk up the parent relationship and keep adding up positions.
+     */
+    public static KVector absolutePosition(final ElkGraphElement element) {
+        if (element instanceof ElkNode) {
+            ElkNode node = (ElkNode) element;
+            return toAbsolute(new KVector(node.getX(), node.getY()), node.getParent());
+        
+        } else if (element instanceof ElkPort) {
+            ElkPort port = (ElkPort) element;
+            return toAbsolute(new KVector(port.getX(), port.getY()), port.getParent());
+            
+        } else if (element instanceof ElkEdge) {
+            ElkEdge edge = (ElkEdge) element;
+            return absolutePosition(edge.getContainingNode());
+            
+        } else if (element instanceof ElkLabel) {
+            ElkLabel label = (ElkLabel) element;
+            KVector absoluteParentPosition = absolutePosition(label.getParent());
+            return new KVector(absoluteParentPosition.x + label.getX(), absoluteParentPosition.y + label.getY());
+        
+        } else {
+            return null;
+        }
+    }
 
     /**
      * Converts the given relative point to an absolute location.
@@ -986,12 +1017,12 @@ public final class ElkUtil {
      * <p>
      * If the returned path does not exist, it is not automatically created.
      *
-     * @param subfolder optional subfolder name. Can be {@code null} or empty, in which case the ELK-specific
-     *                  subfolder of the user's home folder is returned.
+     * @param subfolders optional subfolder names. Can be empty, in which case the ELK-specific subfolder of the user's
+     *                   home folder is returned.
      * @return debug folder path, including a trailing separator character. Can return {@code null} if the user's
      *         home folder is not defined.
      */
-    public static String debugFolderPath(final String subfolder) {
+    public static String debugFolderPath(final String... subfolders) {
         // elkjs-exclude-start
         String userHome = System.getProperty("user.home");
         if (userHome != null) {
@@ -1005,14 +1036,11 @@ public final class ElkUtil {
             // The ELK debug directory
             path.append("elk").append(File.separatorChar);
 
-            // Append the subfolder name, if any
-            if (!Strings.isNullOrEmpty(subfolder)) {
-                path.append(subfolder);
-            }
-
-            // Again, make sure we end with a separator
-            if (path.charAt(path.length() - 1) != File.separatorChar) {
-                path.append(File.separatorChar);
+            // Append the subfolder names, if any
+            if (subfolders != null) {
+                for (String s : subfolders) {
+                    path.append(s).append(File.separatorChar);
+                }
             }
 
             return path.toString();
@@ -1021,6 +1049,25 @@ public final class ElkUtil {
 
         return null;
     }
+    
+    /**
+     * Takes the given name and makes it safe to be used as a file or folder name. To do so, we replace all spaces by
+     * underscores and everything that is neither digit not standard character by hyphens.
+     * 
+     * @param name the name to convert to a proper path name.
+     * @return the proper path name.
+     */
+    // elkjs-exclude-start
+    public static String toSafePathName(final String name) {
+        // Replace whitespace by _
+        Pattern whitespace = Pattern.compile("\\s");
+        String nameWithoutWhitespace = whitespace.matcher(name).replaceAll("_");
+        
+        // Replace everything which isn't a-z, A-Z, 0-9 or _ with -
+        Pattern allButAllowedCharacters = Pattern.compile("[^a-zA-Z0-9_]");
+        return allButAllowedCharacters.matcher(nameWithoutWhitespace).replaceAll("-");
+    }
+    // elkjs-exclude-end
 
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////

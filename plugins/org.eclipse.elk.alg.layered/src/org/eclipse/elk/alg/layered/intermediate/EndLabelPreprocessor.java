@@ -1,9 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2012, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -57,7 +59,7 @@ import com.google.common.collect.Ordering;
  *     <dd>Before phase 4.</dd>
  *   <dt>Same-slot dependencies:</dt>
  *     <dd>{@link LabelAndNodeSizeProcessor}</dd>
- *     <dd>{@link NodeMarginCalculator}</dd>
+ *     <dd>{@link InnermostNodeMarginCalculator}</dd>
  *     <dd>{@link LabelSideSelector}</dd>
  * </dl>
  * 
@@ -65,9 +67,7 @@ import com.google.common.collect.Ordering;
  */
 public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("End label pre-processing", 1);
         

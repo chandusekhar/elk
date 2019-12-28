@@ -1,14 +1,15 @@
 /*******************************************************************************
  * Copyright (c) 2014, 2017 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.core.math;
 
 import java.util.Objects;
-import org.eclipse.elk.core.math.ElkMath;
 
 /**
  * Class resembles basic functionality of {@link java.awt.geom.Rectangle2D}. This way it is possible
@@ -203,21 +204,23 @@ public class ElkRectangle {
     /**
     * Returns the largest X coordinate of the rectangle in double precision.
     */
-    public double getMaxX(){
+    public double getMaxX() {
         return this.x + this.width;
     }
     
     /**
     * Returns the largest Y coordinate of the rectangle in double precision.
     */
-    public double getMaxY(){
+    public double getMaxY() {
         return this.y + this.height;
     }
 
     /**
-    * Tests if the interior of this rect intersects the interior of a specified rect
-    */
-    public boolean intersects(ElkRectangle rect){
+     * Tests if the interior of this rect intersects the interior of a specified rect.
+     * 
+     * @param rect the other rectangle.
+     */
+    public boolean intersects(final ElkRectangle rect) {
         double r1x1 = this.x;
         double r1y1 = this.y;
         double r1x2 = this.x + this.width;

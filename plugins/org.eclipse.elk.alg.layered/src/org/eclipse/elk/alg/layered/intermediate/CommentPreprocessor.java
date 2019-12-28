@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -44,21 +43,21 @@ import com.google.common.collect.Lists;
  *   <dt>Slots:</dt>
  *      <dd>Before phase 1.</dd>
  * </dl>
- * 
- * @author msp
  */
 public final class CommentPreprocessor implements ILayoutProcessor<LGraph> {
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("Comment pre-processing", 1);
+        
+        int commentBoxCount = 0;
         
         Iterator<LNode> nodeIter = layeredGraph.getLayerlessNodes().iterator();
         while (nodeIter.hasNext()) {
             LNode node = nodeIter.next();
             if (node.getProperty(LayeredOptions.COMMENT_BOX)) {
+                commentBoxCount++;
+                
                 int edgeCount = 0;
                 LEdge edge = null;
                 LPort oppositePort = null;
@@ -101,6 +100,10 @@ public final class CommentPreprocessor implements ILayoutProcessor<LGraph> {
                     }
                 }
             }
+        }
+        
+        if (monitor.isLoggingEnabled()) {
+            monitor.log("Found " + commentBoxCount + " comment boxes");
         }
         
         monitor.done();

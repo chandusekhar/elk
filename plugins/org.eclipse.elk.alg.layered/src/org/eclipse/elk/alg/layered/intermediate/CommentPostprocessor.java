@@ -1,12 +1,11 @@
 /*******************************************************************************
  * Copyright (c) 2011, 2015 Kiel University and others.
- * All rights reserved. This program and the accompanying materials
- * are made available under the terms of the Eclipse Public License v1.0
- * which accompanies this distribution, and is available at
- * http://www.eclipse.org/legal/epl-v10.html
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
  *
- * Contributors:
- *     Kiel University - initial API and implementation
+ * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
@@ -30,7 +29,7 @@ import com.google.common.collect.Lists;
  * Post-processor for comment boxes. If any comments are found that were removed by the
  * {@link CommentPreprocessor}, they are reinserted and placed above or below their
  * corresponding connected node. This requires the margin around the node to be large
- * enough to hold all comments, which is ensured by the {@link NodeMarginCalculator}.
+ * enough to hold all comments, which is ensured by the {@link InnermostNodeMarginCalculator}.
  * 
  * <dl>
  *   <dt>Precondition:</dt><dd>Comments have been processed by {@link CommentPreprocessor}.
