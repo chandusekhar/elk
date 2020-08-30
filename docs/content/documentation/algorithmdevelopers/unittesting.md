@@ -85,6 +85,9 @@ public List<AbstractResourcePath> provideGraphs() {
 
     // Only .elkt files contained in a directory and its subdirectories
     paths.add(new ModelResourcePath("realworld/ptolemy/**/").withFilter(new FileExtensionFilter("elkt")));
+    
+    // Only files with names starting with "ci" contained in a directory and its subdirectories
+    paths.add(new ModelResourcePath("realworld/ptolemy/**/").withFilter(new FileNameFilter("ci.+")));
 
     return paths;
 }
@@ -181,13 +184,13 @@ Many graphs in our models repository refrain from specifying explicit sizes and 
 ```java
 @RunWith(LayoutTestRunner.class)
 @Algorithm(MyTestClassOptions.ALGORITHM_ID)
-@DefaultConfiguration(nodes = true, ports = false, edges = false)
+@DefaultConfiguration(nodes = true, ports = true, edges = true, edgeLabels = false)
 public class MyAlgorithmTest {
 
 }
 ```
 
-The defaults are applied on top of all graph configurations. In more detail, this is what they do:
+The defaults are applied after any configuration methods. In more detail, this is what they do:
 
 * Nodes
     * Supply a default size if size constraints are fixed and no size has been set.
@@ -198,6 +201,10 @@ The defaults are applied on top of all graph configurations. In more detail, thi
     * Add a label if non exists.
 * Edges
     * Set edge label placement to `CENTER` if it has not been set.
+* Edge Labels
+    * Add a label to each edge if non exists.
+
+The options default to the values shown in the code fragment.
 
 
 ## Black Box Tests
@@ -246,8 +253,8 @@ For a layout algorithm to support white box tests, its `AbstractLayoutProvider` 
 
 From Eclipse, tests can be run as plain Java JUnit tests (not plug-in tests). Three environment or system variables have to be set for the test framework to work:
 
-* `ELK_REPO`: Absolute path to the directory where the main ELK repository is checked out.
-* `MODELS_REPO`: Absolute path to the directory where the `elk-models` repository is checked out.
+* `ELK_REPO`: Absolute path to the directory where the main ELK repository is checked out. With our default Oomph setup, the value `${workspace_loc:org.eclipse.elk.core}/../..` always works.
+* `MODELS_REPO`: Absolute path to the directory where the `elk-models` repository is checked out. With our default Oomph setup, the value `${workspace_loc:org.eclipse.elk.core}/../../../elk-models` always works.
 
 ### As Part of Automatic Builds
 

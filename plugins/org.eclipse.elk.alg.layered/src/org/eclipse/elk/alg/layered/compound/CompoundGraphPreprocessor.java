@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2013, 2015 Kiel University and others.
+ * Copyright (c) 2013, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -93,9 +93,7 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
     ////////////////////////////////////////////////////////////////////////////////////////////
     // Processing
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph graph, final IElkProgressMonitor monitor) {
         monitor.begin("Compound graph preprocessor", 1);
         
@@ -169,8 +167,8 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
                     // We need the port constraints to position external ports (Issues KIPRA-1528, ELK-48) 
                     PortConstraints portConstraints = node.getProperty(LayeredOptions.PORT_CONSTRAINTS);
                     boolean insidePortLabels =
-                            node.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT) == PortLabelPlacement.INSIDE;
-                    
+                            node.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT).contains(PortLabelPlacement.INSIDE);
+
                     for (LPort port : node.getPorts()) {
                         // Make sure that every port has a dummy node created for it
                         LNode dummyNode = dummyNodeMap.get(port);
@@ -193,20 +191,17 @@ public class CompoundGraphPreprocessor implements ILayoutProcessor<LGraph> {
                             dummyPortLabel.getSize().y = extPortLabel.getSize().y;
                             dummyNodePort.getLabels().add(dummyPortLabel);
                             
-                            // If port labels are placed outside, modify the size
+                            // If port labels are placed outside, modify the size. At this point, the port's side
+                            // may not be known yet if port constraints are free. If they are, however, we know that
+                            // the port will end up on either the east or west side. (see #596)
                             if (!insidePortLabels) {
-                                switch (port.getSide()) {
-                                case EAST:
-                                case WEST:
-                                    dummyPortLabel.getSize().x = 0;
-                                    dummyPortLabel.getSize().y = extPortLabel.getSize().y;
-                                    break;
+                                PortSide side = port.getSide();
+                                if (portConstraints == PortConstraints.FREE
+                                        || PortSide.SIDES_EAST_WEST.contains(side)) {
                                     
-                                case NORTH:
-                                case SOUTH:
-                                    dummyPortLabel.getSize().x = extPortLabel.getSize().x;
+                                    dummyPortLabel.getSize().x = 0;
+                                } else {
                                     dummyPortLabel.getSize().y = 0;
-                                    break;
                                 }
                             }
                         }

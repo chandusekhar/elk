@@ -11,13 +11,13 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.eclipse.elk</groupId>
   <artifactId>plugins</artifactId>
-  <version>0.7.0-SNAPSHOT</version>
+  <version>0.8.0-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <parent>
     <groupId>org.eclipse.elk</groupId>
     <artifactId>parent</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.8.0-SNAPSHOT</version>
     <relativePath>../build/pom.xml</relativePath>
   </parent>
 
@@ -33,10 +33,9 @@
     <module>org.eclipse.elk.alg.graphviz.layouter</module>
     <module>org.eclipse.elk.alg.layered</module>
     <module>org.eclipse.elk.alg.mrtree</module>
-    <module>org.eclipse.elk.alg.packing.rectangles</module>
+    <module>org.eclipse.elk.alg.rectpacking</module>
     <module>org.eclipse.elk.alg.spore</module>
     <module>org.eclipse.elk.conn.gmf</module>
-    <module>org.eclipse.elk.conn.graphiti</module>
     <module>org.eclipse.elk.core</module>
     <module>org.eclipse.elk.core.debug</module>
     <module>org.eclipse.elk.core.debug.grandom</module>
@@ -47,10 +46,13 @@
     <module>org.eclipse.elk.core.service</module>
     <module>org.eclipse.elk.core.ui</module>
     <module>org.eclipse.elk.graph</module>
-    <module>org.eclipse.elk.graph.json</module>
     <module>org.eclipse.elk.graph.text</module>
     <module>org.eclipse.elk.graph.text.ide</module>
     <module>org.eclipse.elk.graph.text.ui</module>
+    <module>org.eclipse.elk.graph.json</module>
+    <module>org.eclipse.elk.graph.json.text</module>
+    <module>org.eclipse.elk.graph.json.text.ide</module>
+    <module>org.eclipse.elk.graph.json.text.ui</module>
   </modules>
 
 </project>

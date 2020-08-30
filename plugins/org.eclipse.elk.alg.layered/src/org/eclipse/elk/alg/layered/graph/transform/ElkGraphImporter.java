@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015, 2019 Kiel University and others.
+ * Copyright (c) 2015, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -28,13 +28,16 @@ import org.eclipse.elk.alg.layered.options.CrossingMinimizationStrategy;
 import org.eclipse.elk.alg.layered.options.GraphProperties;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.alg.layered.options.LayeredSpacings;
 import org.eclipse.elk.alg.layered.options.NodePlacementStrategy;
+import org.eclipse.elk.alg.layered.options.OrderingStrategy;
 import org.eclipse.elk.alg.layered.options.PortType;
 import org.eclipse.elk.core.UnsupportedGraphException;
 import org.eclipse.elk.core.labels.LabelManagementOptions;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
+import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeLabelPlacement;
 import org.eclipse.elk.core.options.HierarchyHandling;
@@ -103,6 +106,16 @@ class ElkGraphImporter {
         // Remember things
         if (topLevelGraph.getProperty(LayeredOptions.PARTITIONING_ACTIVATE)) {
             graphProperties.add(GraphProperties.PARTITIONS);
+        }
+        
+        // Apply a spacing configuration based on a base value (if it has been requested)
+        //  Note that the computed spacing values are set on the lgraph and not the elkgraph to avoid polluting 
+        //  the input graph. If the spacing values were set on the input graph, a second layout run of the same 
+        //  input graph - with a different base value - would yield an unexpected result as the computed spacing 
+        //  values of the first layout run would be used (explicitly set spacing values are not overwritten).
+        if (topLevelGraph.hasProperty(LayeredOptions.SPACING_BASE_VALUE)) {
+            LayeredSpacings.withBaseValue(topLevelGraph.getProperty(LayeredOptions.SPACING_BASE_VALUE))
+                    .apply(topLevelGraph);
         }
 
         // Import the graph either with or without multiple nested levels of hierarchy
@@ -208,15 +221,25 @@ class ElkGraphImporter {
      */
     private void importFlatGraph(final ElkNode elkgraph, final LGraph lgraph) {
         // Transform the node's children, unless we're told not to
+        int index = 0;
         for (ElkNode child : elkgraph.getChildren()) {
             if (!child.getProperty(LayeredOptions.NO_LAYOUT)) {
+                if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER) != OrderingStrategy.NONE) {
+                    child.setProperty(InternalProperties.MODEL_ORDER, index);
+                    index++;
+                }
                 transformNode(child, lgraph);
             }
         }
-        
+
         // iterate the list of contained edges to preserve the 'input order' of the edges
         // (this is not part of the previous loop since all children must have already been transformed)
+        index = 0;
         for (ElkEdge elkedge : elkgraph.getContainedEdges()) {
+            if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER) != OrderingStrategy.NONE) {
+                elkedge.setProperty(InternalProperties.MODEL_ORDER, index);
+                index++;
+            }
             ElkNode source = ElkGraphUtil.getSourceNode(elkedge);
             ElkNode target = ElkGraphUtil.getTargetNode(elkedge);
             
@@ -276,17 +299,25 @@ class ElkGraphImporter {
             boolean isNodeToBeLaidOut = !elknode.getProperty(LayeredOptions.NO_LAYOUT);
             if (isNodeToBeLaidOut) {
                 
-                // Check if there has to be an LGraph for this node (which is the case if it has
-                // children or inside self-loops)
+                // Check if there has to be an LGraph for this node (which is the case if it has children or inside
+                // self-loops, and if it does not have another layout algorithm configured)
                 boolean hasChildren = !elknode.getChildren().isEmpty();
                 boolean hasInsideSelfLoops = hasInsideSelfLoops(elknode);
                 boolean hasHierarchyHandlingEnabled = elknode.getProperty(LayeredOptions.HIERARCHY_HANDLING)
                         == HierarchyHandling.INCLUDE_CHILDREN;
+                boolean usesElkLayered = !elknode.hasProperty(CoreOptions.ALGORITHM)
+                        || elknode.getProperty(CoreOptions.ALGORITHM).equals(LayeredOptions.ALGORITHM_ID);
 
                 LGraph nestedGraph = null;
-                if (hasHierarchyHandlingEnabled && (hasChildren || hasInsideSelfLoops)) {
+                if (usesElkLayered && hasHierarchyHandlingEnabled && (hasChildren || hasInsideSelfLoops)) {
                     nestedGraph = createLGraph(elknode);
                     nestedGraph.setProperty(LayeredOptions.DIRECTION, parentGraphDirection);
+                    
+                    // Apply a spacing configuration, for details see comment int #importGraph(...)
+                    if (nestedGraph.hasProperty(LayeredOptions.SPACING_BASE_VALUE)) {
+                        LayeredSpacings.withBaseValue(nestedGraph.getProperty(LayeredOptions.SPACING_BASE_VALUE))
+                                .apply(nestedGraph);
+                    }
                     
                     // We need to make sure that we make the graph large enough for any ports, node labels, etc.
                     // if the size constraints are not empty
@@ -364,7 +395,22 @@ class ElkGraphImporter {
                     }
                 }
                 
-                elknodeQueue.addAll(elknode.getChildren());
+                // We add the current node's children if two conditions are met: first, the current node's parent is
+                // null or set to INCLUDE_CHILDREN, and second, the child does not have another layout algorithm
+                // configured
+                HierarchyHandling parentHierarchyHandling = elknode.getParent() == null
+                        ? HierarchyHandling.INCLUDE_CHILDREN
+                        : elknode.getParent().getProperty(LayeredOptions.HIERARCHY_HANDLING);
+                if (parentHierarchyHandling == HierarchyHandling.INCLUDE_CHILDREN) {
+                    for (ElkNode child : elknode.getChildren()) {
+                        boolean usesElkLayered = !child.hasProperty(CoreOptions.ALGORITHM)
+                                || child.getProperty(CoreOptions.ALGORITHM).equals(LayeredOptions.ALGORITHM_ID);
+                        
+                        if (usesElkLayered) {
+                            elknodeQueue.add(child);
+                        }
+                    }
+                }
             }
         }
     }
@@ -479,7 +525,8 @@ class ElkGraphImporter {
         // since size information stored there may apply to the current graph node)
         ElkPadding nodeLabelpadding = NodeLabelAndSizeCalculator.computeInsideNodeLabelPadding(
                 elkgraph.getParent() == null ? null : ElkGraphAdapters.adapt(elkgraph.getParent()),
-                ElkGraphAdapters.adaptSingleNode(elkgraph));
+                ElkGraphAdapters.adaptSingleNode(elkgraph),
+                Direction.RIGHT);
         ElkPadding nodePadding = lgraph.getProperty(LayeredOptions.PADDING);
 
         // Setup the graph's padding
@@ -516,8 +563,8 @@ class ElkGraphImporter {
      */
     private void checkExternalPorts(final ElkNode elkgraph, final Set<GraphProperties> graphProperties) {
         final boolean enableSelfLoops = elkgraph.getProperty(LayeredOptions.INSIDE_SELF_LOOPS_ACTIVATE);
-        final PortLabelPlacement portLabelPlacement = elkgraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT);
-        
+        final Set<PortLabelPlacement> portLabelPlacement = elkgraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT);
+
         // We're iterating over the ports until we've determined that we have both external ports and
         // hyperedges, or if there are no more ports left
         boolean hasExternalPorts = false;
@@ -549,7 +596,7 @@ class ElkGraphImporter {
             // External ports?
             if (externalPortEdges > 0) {
                 hasExternalPorts = true;
-            } else if (portLabelPlacement == PortLabelPlacement.INSIDE && elkport.getLabels().size() > 0) {
+            } else if (portLabelPlacement.contains(PortLabelPlacement.INSIDE) && elkport.getLabels().size() > 0) {
                 hasExternalPorts = true;
             }
             
@@ -613,7 +660,8 @@ class ElkGraphImporter {
         
         // The dummy only has one port
         LPort dummyPort = dummy.getPorts().get(0);
-        dummy.setProperty(LayeredOptions.PORT_LABELS_PLACEMENT, PortLabelPlacement.OUTSIDE);
+        dummyPort.setConnectedToExternalNodes(isConnectedToExternalNodes(elkport));
+        dummy.setProperty(LayeredOptions.PORT_LABELS_PLACEMENT, PortLabelPlacement.outside());
         
         // If the compound node wants to have its port labels placed on the inside, we need to leave
         // enough space for them by creating an LLabel for the KLabels. If the compound node wants to
@@ -622,8 +670,8 @@ class ElkGraphImporter {
         // space inside. Thus, for east and west ports, we reduce the label width to zero, otherwise
         // we reduce the label height to zero
         boolean insidePortLabels =
-                elkgraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT) == PortLabelPlacement.INSIDE;
-        
+                elkgraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT).contains(PortLabelPlacement.INSIDE);
+
         // Transform all of the port's labels
         for (ElkLabel elklabel : elkport.getLabels()) {
             if (!elklabel.getProperty(LayeredOptions.NO_LAYOUT) && !Strings.isNullOrEmpty(elklabel.getText())) {
@@ -712,6 +760,31 @@ class ElkGraphImporter {
         }
         
         return outputPortVote - inputPortVote;
+    }
+    
+    /**
+     * Checks whether the given (external) port has connections to the outside (that is, to non-descendants).
+     */
+    private boolean isConnectedToExternalNodes(final ElkPort elkport) {
+        ElkNode parent = elkport.getParent();
+        
+        for (ElkEdge outEdge : elkport.getOutgoingEdges()) {
+            ElkNode targetNode = ElkGraphUtil.connectableShapeToNode(outEdge.getTargets().get(0));
+            
+            if (!ElkGraphUtil.isDescendant(targetNode, parent)) {
+                return true;
+            }
+        }
+        
+        for (ElkEdge inEdge : elkport.getIncomingEdges()) {
+            ElkNode sourceNode = ElkGraphUtil.connectableShapeToNode(inEdge.getSources().get(0));
+            
+            if (!ElkGraphUtil.isDescendant(sourceNode, parent)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
     
 
@@ -870,11 +943,6 @@ class ElkGraphImporter {
                 lport.getLabels().add(transformLabel(elklabel));
             }
         }
-
-        // Check if we need to add anything to the graph properties
-        if (elkport.getIncomingEdges().size() + elkport.getOutgoingEdges().size() > 1) {
-            graphProperties.add(GraphProperties.HYPEREDGES);
-        }
         
         switch (layoutDirection) {
         case LEFT:
@@ -953,7 +1021,11 @@ class ElkGraphImporter {
         // If either the source or the target of the edge wasn't properly transformed for whatever
         // reason, we back out
         if (sourceLNode == null || targetLNode == null) {
-            return null;
+            throw new UnsupportedGraphException("The source or the target of edge " + elkedge + " could not be found. "
+                    + "This usually happens when an edge connects a node laid out by ELK Layered to a node in "
+                    + "another level of hierarchy laid out by either another instance of ELK Layered or another "
+                    + "layout algorithm alltogether. The former can be solved by setting the hierarchyHandling "
+                    + "option to INCLUDE_CHILDREN.");
         }
         
         // Create a layered edge
@@ -1012,6 +1084,13 @@ class ElkGraphImporter {
         // Finally set the source and target of the edge
         ledge.setSource(sourceLPort);
         ledge.setTarget(targetLPort);
+        
+        // If the ports have multiple incoming or outgoing edges, the HYPEREDGE property needs to be set
+        if (sourceLPort.getIncomingEdges().size() > 1 || sourceLPort.getOutgoingEdges().size() > 1
+                || targetLPort.getIncomingEdges().size() > 1 || targetLPort.getOutgoingEdges().size() > 1) {
+            
+            graphProperties.add(GraphProperties.HYPEREDGES);
+        }
 
         // Transform the edge's labels
         for (ElkLabel elklabel : elkedge.getLabels()) {
@@ -1028,7 +1107,6 @@ class ElkGraphImporter {
                     break;
                     
                 case CENTER:
-                case UNDEFINED:
                     graphProperties.add(GraphProperties.CENTER_LABELS);
                     llabel.setProperty(LayeredOptions.EDGE_LABELS_PLACEMENT, EdgeLabelPlacement.CENTER);
                 }

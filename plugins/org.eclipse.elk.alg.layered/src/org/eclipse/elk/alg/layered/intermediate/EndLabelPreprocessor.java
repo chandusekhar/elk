@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012, 2017 Kiel University and others.
+ * Copyright (c) 2012, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -9,10 +9,11 @@
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
-import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 import org.eclipse.elk.alg.common.nodespacing.cellsystem.HorizontalLabelAlignment;
 import org.eclipse.elk.alg.common.nodespacing.cellsystem.LabelCell;
@@ -37,7 +38,6 @@ import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Ordering;
 
 /**
  * <p>Puts all end labels into {@link LabelCell label cells} stored for each node using the
@@ -85,10 +85,6 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
     
     private void processNode(final LNode node, final double edgeLabelSpacing, final double labelLabelSpacing,
             final boolean verticalLayout) {
-        
-        // At this stage, the port list should be sorted (once this line stops compiling with newer Guava versions,
-        // use the Comparators class instead of Ordering, which is scheduled to be deleted sometime > Guava 21)
-        assert Ordering.from(PortListSorter.CMP_COMBINED).isOrdered(node.getPorts());
 
         // Iterate over all ports and collect their labels in label cells
         int portCount = node.getPorts().size(); 
@@ -105,15 +101,19 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
         // Actually go off and place them labels!
         placeLabels(node, portLabelCells, labelLabelSpacing, edgeLabelSpacing, verticalLayout);
         
-        // Turn the array into a list and save that in the node
-        List<LabelCell> portLabelCellList = Arrays.stream(portLabelCells)
-                .filter(cell -> cell != null)
-                .collect(Collectors.toList());
-        if (!portLabelCellList.isEmpty()) {
-            node.setProperty(InternalProperties.END_LABELS, portLabelCellList);
+        // Turn the array into a map and save that in the node
+        Map<LPort, LabelCell> portToLabelCellMap = new HashMap<>();
+        for (int index = 0; index < portLabelCells.length; index++) {
+            if (portLabelCells[index] != null) {
+                portToLabelCellMap.put(node.getPorts().get(index), portLabelCells[index]);
+            }
+        }
+        
+        if (!portToLabelCellMap.isEmpty()) {
+            node.setProperty(InternalProperties.END_LABELS, portToLabelCellMap);
             
             // Update the node's margins
-            updateNodeMargins(node, portLabelCellList);
+            updateNodeMargins(node, portLabelCells);
         }
     }
     
@@ -195,6 +195,8 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
     private static double gatherLabels(final LPort port, final List<LLabel> targetList) {
         double maxEdgeThickness = -1;
         
+        List<LLabel> labels = new LinkedList<>();
+        
         for (LEdge incidentEdge : port.getConnectedEdges()) {
             maxEdgeThickness = Math.max(maxEdgeThickness, incidentEdge.getProperty(LayeredOptions.EDGE_THICKNESS));
             
@@ -203,14 +205,24 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
                 incidentEdge.getLabels().stream()
                         .filter(label -> label.getProperty(
                                 LayeredOptions.EDGE_LABELS_PLACEMENT) == EdgeLabelPlacement.TAIL)
-                        .forEach(label -> targetList.add(label));
+                        .forEach(label -> labels.add(label));
             } else {
                 // It's an incoming edge; all head labels belong to this port
                 incidentEdge.getLabels().stream()
                         .filter(label -> label.getProperty(
                                 LayeredOptions.EDGE_LABELS_PLACEMENT) == EdgeLabelPlacement.HEAD)
-                        .forEach(label -> targetList.add(label));
+                        .forEach(label -> labels.add(label));
             }
+            
+            // Remember the edge each label came from
+            for (LLabel label : labels) {
+                if (!label.hasProperty(InternalProperties.END_LABEL_EDGE)) {
+                    label.setProperty(InternalProperties.END_LABEL_EDGE, incidentEdge);
+                }
+            }
+            
+            targetList.addAll(labels);
+            labels.clear();
         }
         
         return maxEdgeThickness;
@@ -400,7 +412,7 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
     /**
      * Updates the node's margins to account for its end labels.
      */
-    private void updateNodeMargins(final LNode node, final List<LabelCell> labelCells) {
+    private void updateNodeMargins(final LNode node, final LabelCell[] labelCells) {
         LMargin nodeMargin = node.getMargin();
         KVector nodeSize = node.getSize();
         
@@ -413,7 +425,9 @@ public final class EndLabelPreprocessor implements ILayoutProcessor<LGraph> {
         
         // Union the rectangle with each rectangle that describes a label cell
         for (LabelCell labelCell : labelCells) {
-            nodeMarginRectangle.union(labelCell.getCellRectangle());
+            if (labelCell != null) {
+                nodeMarginRectangle.union(labelCell.getCellRectangle());
+            }
         }
         
         // Reapply the new rectangle to the margin

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2017 Kiel University and others.
+ * Copyright (c) 2017, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -16,50 +16,50 @@ import com.google.common.collect.Maps
 import java.util.Collections
 import java.util.Iterator
 import java.util.Map
+import java.util.Random
 import org.eclipse.elk.core.data.LayoutMetaDataService
-import org.eclipse.elk.graph.EMapPropertyHolder
+import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.graph.ElkEdge
 import org.eclipse.elk.graph.ElkEdgeSection
 import org.eclipse.elk.graph.ElkLabel
 import org.eclipse.elk.graph.ElkNode
 import org.eclipse.elk.graph.ElkPort
 import org.eclipse.elk.graph.ElkShape
-import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.graph.properties.IProperty
-import java.util.Random
+import org.eclipse.elk.graph.properties.IPropertyHolder
 
 /**
  * Exporter from elk graph to json.
  */
-public final class JsonExporter {
+final class JsonExporter {
     
     extension JsonAdapter = new JsonAdapter
 
-    private val BiMap<ElkNode, String> nodeIdMap = HashBiMap.create()
-    private val BiMap<ElkPort, String> portIdMap = HashBiMap.create()
-    private val BiMap<ElkEdge, String> edgeIdMap = HashBiMap.create()
-    private val BiMap<ElkEdgeSection, String> edgeSectionIdMap = HashBiMap.create()
+    val BiMap<ElkNode, String> nodeIdMap = HashBiMap.create()
+    val BiMap<ElkPort, String> portIdMap = HashBiMap.create()
+    val BiMap<ElkEdge, String> edgeIdMap = HashBiMap.create()
+    val BiMap<ElkEdgeSection, String> edgeSectionIdMap = HashBiMap.create()
 
-    private val Map<ElkNode, Object> nodeJsonMap = Maps.newHashMap
-    private val Map<ElkPort, Object> portJsonMap = Maps.newHashMap
-    private val Map<ElkEdge, Object> edgeJsonMap = Maps.newHashMap
-    private val Map<ElkEdgeSection, Object> edgeSectionJsonMap = Maps.newHashMap
+    val Map<ElkNode, Object> nodeJsonMap = Maps.newHashMap
+    val Map<ElkPort, Object> portJsonMap = Maps.newHashMap
+    val Map<ElkEdge, Object> edgeJsonMap = Maps.newHashMap
+    val Map<ElkEdgeSection, Object> edgeSectionJsonMap = Maps.newHashMap
 
-    private var nodeIdCounter = 0
-    private var portIdCounter = 0
-    private var edgeIdCounter = 0
-    private var edgeSectionIdCounter = 0
+    var nodeIdCounter = 0
+    var portIdCounter = 0
+    var edgeIdCounter = 0
+    var edgeSectionIdCounter = 0
     
     // configuration
-    private var omitZeroPos = true
-    private var omitZeroDim = true
-    private var omitLayout = false
-    private var shortLayoutOptionKeys = true
-    private var omitUnknownLayoutOptions = true
+    var omitZeroPos = true
+    var omitZeroDim = true
+    var omitLayout = false
+    var shortLayoutOptionKeys = true
+    var omitUnknownLayoutOptions = true
     
     new () { }
 
-    public def setOptions(boolean omitZeroPos, boolean omitZeroDim, boolean omitLayout, 
+    def setOptions(boolean omitZeroPos, boolean omitZeroDim, boolean omitLayout, 
         boolean shortLayoutOptionKeys, boolean omitUnknownLayoutOptions) {
         this.omitZeroPos = omitZeroPos
         this.omitZeroDim = omitZeroDim
@@ -68,7 +68,7 @@ public final class JsonExporter {
         this.omitUnknownLayoutOptions = omitUnknownLayoutOptions
     }
 
-    public def export(ElkNode root) {
+    def export(ElkNode root) {
         init
 
         // create a tmp array
@@ -128,6 +128,7 @@ public final class JsonExporter {
         
         // properties
         node.transformProperties(jsonObj)
+        node.transformIndividualSpacings(jsonObj)
         node.transferShapeLayout(jsonObj)
     }
 
@@ -208,16 +209,20 @@ public final class JsonExporter {
         }
 
         // transfer junction points, if existent
-        val jps = edge.getProperty(CoreOptions.JUNCTION_POINTS)
-        if (!omitLayout && !jps.nullOrEmpty) {
-            val jsonJPs = newJsonArray
-            jps.forEach[ jp |
-                val jsonPnt = newJsonObject
-                jsonPnt.addJsonObj("x", jp.x)
-                jsonPnt.addJsonObj("y", jp.y)
-                jsonJPs.addJsonArr(jsonPnt)
-            ]
-            jsonObj.addJsonObj("junctionPoints", jsonJPs)
+        // make sure not to initialize an empty set of junction points by accident (#559)
+        // when immediately using 'getProperty'
+        if (!omitLayout && edge.hasProperty(CoreOptions.JUNCTION_POINTS)) {
+            val jps = edge.getProperty(CoreOptions.JUNCTION_POINTS)
+            if (!omitLayout && !jps.nullOrEmpty) {
+                val jsonJPs = newJsonArray
+                jps.forEach[ jp |
+                    val jsonPnt = newJsonObject
+                    jsonPnt.addJsonObj("x", jp.x)
+                    jsonPnt.addJsonObj("y", jp.y)
+                    jsonJPs.addJsonArr(jsonPnt)
+                ]
+                jsonObj.addJsonObj("junctionPoints", jsonJPs)
+            }
         }
 
         // properties        
@@ -293,16 +298,40 @@ public final class JsonExporter {
         label.transferShapeLayout(jsonLabel)
     }
 
-    private def void transformProperties(EMapPropertyHolder holder, Object parentA) {
+    private def void transformProperties(IPropertyHolder holder, Object parentA) {
         // skip if empty
-        if (holder.properties.nullOrEmpty) {
+        if (holder === null || holder.allProperties === null || holder.allProperties.empty) {
             return
         }
         
         val jsonProps = newJsonObject
         val parent = parentA.toJsonObject
         parent.addJsonObj("layoutOptions", jsonProps)
-        holder.properties.entrySet.forEach [ p |
+        holder.getAllProperties.entrySet
+            .filter[ key !== null ]
+            .filter[ key != CoreOptions.SPACING_INDIVIDUAL ]
+            .forEach [ p |
+                if (!omitUnknownLayoutOptions || p.key.isKnown) {
+                    var key = if (shortLayoutOptionKeys) p.key.id.shortOptionKey else p.key.id
+                    jsonProps.addProperty(key, p.value.toString)                
+                }
+            ]
+    }
+    
+    private def void transformIndividualSpacings(IPropertyHolder holder, Object parentA) {
+        // skip if empty
+        if (holder === null || !holder.hasProperty(CoreOptions.SPACING_INDIVIDUAL)) {
+            return
+        }
+        val individualSpacings = holder.getProperty(CoreOptions.SPACING_INDIVIDUAL)
+        if (individualSpacings.allProperties === null || individualSpacings.allProperties.empty) {
+            return;
+        }
+        
+        val jsonProps = newJsonObject
+        val parent = parentA.toJsonObject
+        parent.addJsonObj("individualSpacings", jsonProps)
+        individualSpacings.allProperties.entrySet.filter[it.key !== null].forEach [ p |
             if (!omitUnknownLayoutOptions || p.key.isKnown) {
                 var key = if (shortLayoutOptionKeys) p.key.id.shortOptionKey else p.key.id
                 jsonProps.addProperty(key, p.value.toString)                
@@ -452,7 +481,7 @@ public final class JsonExporter {
         return LayoutMetaDataService.instance.getOptionDataBySuffix(property.id) !== null
     }
     
-    private val RANDOM = new Random()
+    val RANDOM = new Random()
     private def String sixDigitRandomNumber() {
         return RANDOM.nextInt(1000000) + ""
     }

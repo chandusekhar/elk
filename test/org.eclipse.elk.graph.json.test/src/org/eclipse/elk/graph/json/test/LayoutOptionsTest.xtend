@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Kiel University and others.
+ * Copyright (c) 2017, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -9,18 +9,25 @@
  *******************************************************************************/
 package org.eclipse.elk.graph.json.test
 
+import com.google.common.base.CharMatcher
+import org.eclipse.elk.alg.test.PlainJavaInitialization
+import org.eclipse.elk.core.options.CoreOptions
+import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.graph.json.ElkGraphJson
+import org.eclipse.elk.graph.util.ElkGraphUtil
+import org.junit.BeforeClass
 import org.junit.Test
 
 import static org.junit.Assert.*
-import org.eclipse.elk.core.options.CoreOptions
-import org.eclipse.elk.core.options.Direction
-import org.eclipse.elk.graph.util.ElkGraphUtil
-import com.google.common.base.CharMatcher
 
 /**
  */
 class LayoutOptionsTest {
+    
+    @BeforeClass
+    static def void init() {
+        PlainJavaInitialization.initializePlainJavaLayout
+    }
     
     @Test
     def void testImportLayoutOptions() {
@@ -28,7 +35,7 @@ class LayoutOptionsTest {
         {
           "id": "root",
           "layoutOptions": {
-            "direction": "DOWN"
+            "elk.direction": "DOWN"
           }
         }
         '''
@@ -43,7 +50,7 @@ class LayoutOptionsTest {
         {
           "id": "root",
           "properties": {
-            "direction": "DOWN"
+            "elk.direction": "DOWN"
           }
         }
         '''
@@ -58,10 +65,10 @@ class LayoutOptionsTest {
         {
           "id": "root",
           "layoutOptions": {
-            "direction": "UP"
+            "elk.direction": "UP"
           },
           "properties": {
-            "direction": "DOWN"
+            "elk.direction": "DOWN"
           }
         }
         '''
@@ -77,7 +84,7 @@ class LayoutOptionsTest {
         
         val json = ElkGraphJson.forGraph(root).toJson
         
-        val expected = '''{"id":"n0","layoutOptions":{"direction":"UP"}}'''
+        val expected = '''{"id":"n0","layoutOptions":{"elk.direction":"UP"}}'''
         val cleanJson = CharMatcher.whitespace.removeFrom(json)
         
         assertEquals(expected, cleanJson)

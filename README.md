@@ -1,4 +1,6 @@
-# Eclipse Layout Kernel (ELK)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eclipse/elk/master/docs/static/img/elk_with_text.svg?sanitize=true" height="150"> 
+</p>
 
 Diagrams and visual languages are a great thing,
 but getting the layout just right for them to be easily understandable
@@ -14,7 +16,7 @@ and can thus also be used outside of Eclipse.
 * [The ELK homepage](http://www.eclipse.org/elk)
 * [... and ELK's documentation](http://www.eclipse.org/elk/documentation.html)
 * [ELK Live](https://rtsys.informatik.uni-kiel.de/elklive/) (web-based playground to play around with ELK)
-* [elkjs](https://github.com/OpenKieler/elkjs) (JavaScript library transpiled from ELK's Java sources)
+* [elkjs](https://github.com/kieler/elkjs) (JavaScript library transpiled from ELK's Java sources)
 
 ## Example Layout
 

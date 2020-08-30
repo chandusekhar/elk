@@ -12,6 +12,7 @@ package org.eclipse.elk.alg.layered.options;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -24,6 +25,7 @@ import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.LPort;
 import org.eclipse.elk.alg.layered.intermediate.FinalSplineBendpointsCalculator;
+import org.eclipse.elk.alg.layered.intermediate.LayerConstraintPreprocessor;
 import org.eclipse.elk.alg.layered.intermediate.loops.SelfLoopHolder;
 import org.eclipse.elk.alg.layered.intermediate.wrapping.BreakingPointInserter;
 import org.eclipse.elk.alg.layered.p5edges.splines.SplineEdgeRouter;
@@ -37,7 +39,6 @@ import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.graph.properties.IProperty;
 import org.eclipse.elk.graph.properties.Property;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Multimap;
 
 /**
@@ -113,7 +114,12 @@ public final class InternalProperties {
      * If any edge incident to a node has end labels, those are stored in one label cell per port by the end label
      * processors.
      */
-    public static final IProperty<List<LabelCell>> END_LABELS = new Property<>("endLabels");
+    public static final IProperty<Map<LPort, LabelCell>> END_LABELS = new Property<>("endLabels");
+    
+    /**
+     * The edge an end label belongs to.
+     */
+    public static final IProperty<LEdge> END_LABEL_EDGE = new Property<>("endLabel.origin");
 
     /**
      * The side (of an edge) a label is placed on.
@@ -194,6 +200,13 @@ public final class InternalProperties {
      */
     public static final IProperty<List<LNode>> IN_LAYER_SUCCESSOR_CONSTRAINTS =
             new Property<List<LNode>>("inLayerSuccessorConstraint", new ArrayList<LNode>());
+    
+    /**
+     * Set to {@code true} if there are in-layer successor constraints between regular nodes. If that
+     * is the case, constraint resolvers may have to know.
+     */
+    public static final IProperty<Boolean> IN_LAYER_SUCCESSOR_CONSTRAINTS_BETWEEN_NON_DUMMIES =
+            new Property<Boolean>("inLayerSuccessorConstraintBetweenNonDummies", false);
 
     /**
      * A property set on ports indicating a dummy node created for that port. This is not set for
@@ -318,30 +331,6 @@ public final class InternalProperties {
     public static final IProperty<Boolean> CYCLIC = new Property<Boolean>("cyclic", false);
 
     /**
-     * Determines the original size of a big node.
-     */
-    public static final IProperty<Float> BIG_NODE_ORIGINAL_SIZE = new Property<Float>(
-            "bigNodeOriginalSize", 0f);
-
-    /**
-     * Specifies if the corresponding node is the first node in a big node chain.
-     */
-    public static final IProperty<Boolean> BIG_NODE_INITIAL = new Property<Boolean>(
-            "bigNodeInitial", false);
-
-    /**
-     * Original labels of a big node.
-     */
-    public static final IProperty<List<LLabel>> BIGNODES_ORIG_LABELS = new Property<List<LLabel>>(
-            "org.eclipse.elk.alg.layered.bigNodeLabels", new ArrayList<LLabel>());
-
-    /**
-     * A post processing function that is called during big nodes post processing.
-     */
-    public static final IProperty<Function<Void, Void>> BIGNODES_POST_PROCESS =
-            new Property<Function<Void, Void>>("org.eclipse.elk.alg.layered.postProcess", null);
-
-    /**
      * Map of original hierarchy crossing edges to a set of dummy edges by which the original edge
      * has been replaced.
      */
@@ -419,6 +408,35 @@ public final class InternalProperties {
      * {@link FinalSplineBendpointsCalculator}.
      */
     public static final IProperty<Double> SPLINE_NS_PORT_Y_COORD = new Property<>("splines.nsPortY");
+    
+    /**
+     * Set for nodes and edges to preserve the order in the model file.
+     */
+    public static final IProperty<Integer> MODEL_ORDER = new Property<>("modelOrder");
+
+    /**
+     * Set on ports to save their (long edge) target node.
+     * Only used during port sorting if the node/edge order shall be preserved.
+     */
+    public static final IProperty<LNode> LONG_EDGE_TARGET_NODE = new Property<>("longEdgeTargetNode");
+    
+    /**
+     * Set during crossing minimization on a graph to signal that crossing minization should not shuffle the free nodes.
+     * This also fixes the initial sweep direction to forward.
+     */
+    public static final IProperty<Boolean> FIRST_TRY_WITH_INITIAL_ORDER =
+            new Property<>("firstTryWithInitialOrder", false);
+
+    /**
+     * List of nodes hidden by the {@link LayerConstraintPreprocessor}. Set on graphs.
+     */
+    public static final IProperty<List<LNode>> HIDDEN_NODES = new Property<>("layerConstraints.hiddenNodes");
+    
+    /**
+     * The port a hidden edge was originally connected to before {@link LayerConstraintPreprocessor} temporarily
+     * disconnected it. Set on edges.
+     */
+    public static final IProperty<LPort> ORIGINAL_OPPOSITE_PORT = new Property<>("layerConstraints.opposidePort");
     
     /**
      * Hidden default constructor.

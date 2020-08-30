@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2015 Kiel University and others.
+ * Copyright (c) 2010, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -26,7 +26,6 @@ import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.graph.LNode.NodeType;
 import org.eclipse.elk.alg.layered.graph.LPadding;
 import org.eclipse.elk.alg.layered.graph.Layer;
-import org.eclipse.elk.alg.layered.options.ContentAlignment;
 import org.eclipse.elk.alg.layered.options.CrossingMinimizationStrategy;
 import org.eclipse.elk.alg.layered.options.GraphProperties;
 import org.eclipse.elk.alg.layered.options.GreedySwitchType;
@@ -34,6 +33,7 @@ import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
 import org.eclipse.elk.core.math.KVector;
+import org.eclipse.elk.core.options.ContentAlignment;
 import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.core.options.SizeConstraint;
 import org.eclipse.elk.core.options.SizeOptions;
@@ -229,6 +229,7 @@ public final class ElkLayered {
         monitor.begin("Recursive hierarchical layout", work);
 
         // When the root graph has finished layout, the layout is complete.
+        int slotIndex = 0;
         Iterator<ILayoutProcessor<LGraph>> rootProcessors = getProcessorsForRootGraph(graphsAndAlgorithms);
         while (rootProcessors.hasNext()) {
             // Layout from bottom up
@@ -239,15 +240,35 @@ public final class ElkLayered {
                 while (processors.hasNext()) {
                     ILayoutProcessor<LGraph> processor = processors.next();
                     if (!(processor instanceof IHierarchyAwareLayoutProcessor)) {
+                        // Output debug graph
+                        // elkjs-exclude-start
+                        if (monitor.isLoggingEnabled()) {
+                            DebugUtil.logDebugGraph(monitor, graph, slotIndex,
+                                    "Before " + processor.getClass().getSimpleName());
+                        }
+                        // elkjs-exclude-end
+                        
                         notifyProcessorReady(graph, processor);
                         processor.process(graph, monitor.subTask(1));
                         notifyProcessorFinished(graph, processor);
                         
+                        slotIndex++;
+                        
                     } else if (isRoot(graph)) {
+                        // Output debug graph
+                        // elkjs-exclude-start
+                        if (monitor.isLoggingEnabled()) {
+                            DebugUtil.logDebugGraph(monitor, graph, slotIndex,
+                                    "Before " + processor.getClass().getSimpleName());
+                        }
+                        // elkjs-exclude-end
+                        
                         // If processor operates on the full hierarchy, it must be executed on the root
                         notifyProcessorReady(graph, processor);
                         processor.process(graph, monitor.subTask(1));
                         notifyProcessorFinished(graph, processor);
+                        
+                        slotIndex++;
                         
                         // Continue operation with the graph at the bottom of the hierarchy
                         break;
@@ -259,6 +280,13 @@ public final class ElkLayered {
                 }
             }
         }
+
+        // Graph debug output
+        // elkjs-exclude-start
+        if (monitor.isLoggingEnabled()) {
+            DebugUtil.logDebugGraph(monitor, lgraph, slotIndex, "Finished");
+        }
+        // elkjs-exclude-end
 
         monitor.done();
     }
@@ -313,12 +341,11 @@ public final class ElkLayered {
             });
         }
         
-        // Greedy switch
-        //  simply turn it off for children
-        if (!GraphConfigurator.activateGreedySwitchFor(root)) {
-            graphs.forEach(
-                    g -> g.setProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE, GreedySwitchType.OFF));
-        }
+        // Greedy switch (simply copy the behavior of the root to all children)
+        final GreedySwitchType rootType =
+                root.getProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_HIERARCHICAL_TYPE);
+        graphs.forEach(
+                g -> g.setProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_HIERARCHICAL_TYPE, rootType));
     }
 
     private Iterator<ILayoutProcessor<LGraph>> getProcessorsForRootGraph(
@@ -542,18 +569,16 @@ public final class ElkLayered {
      * @param monitor a progress monitor
      */
     private void layout(final LGraph lgraph, final IElkProgressMonitor monitor) {
-        boolean monitorStarted = monitor.isRunning();
-        if (!monitorStarted) {
+        boolean monitorWasAlreadyRunning = monitor.isRunning();
+        if (!monitorWasAlreadyRunning) {
             monitor.begin("Component Layout", 1);
         }
+        
         List<ILayoutProcessor<LGraph>> algorithm = lgraph.getProperty(InternalProperties.PROCESSORS);
         float monitorProgress = 1.0f / algorithm.size();
-
+        
         if (monitor.isLoggingEnabled()) {
-            // Debug Mode!
-            // Print the algorithm configuration and output the whole graph to a file
-            // before each slot execution
-
+            // Print the algorithm configuration
             monitor.log("ELK Layered uses the following " + algorithm.size() + " modules:");
             int slot = 0;
             for (ILayoutProcessor<LGraph> processor : algorithm) {
@@ -561,39 +586,35 @@ public final class ElkLayered {
                 String gwtDoesntSupportPrintf = (slot < 10 ? "0" : "") + (slot++);
                 monitor.log("   Slot " + gwtDoesntSupportPrintf + ": " + processor.getClass().getName());
             }
-
-            // Invoke each layout processor
-            int slotIndex = 0;
-            for (ILayoutProcessor<LGraph> processor : algorithm) {
-                if (monitor.isCanceled()) {
-                    return;
-                }
-                // Graph debug output
-                // elkjs-exclude-start
-                DebugUtil.logDebugGraph(monitor, lgraph, slotIndex++, processor.getClass().getSimpleName());
-                // elkjs-exclude-end
-
-                notifyProcessorReady(lgraph, processor);
-                processor.process(lgraph, monitor.subTask(monitorProgress));
-                notifyProcessorFinished(lgraph, processor);
-            }
-
-            // Graph debug output
-            // elkjs-exclude-start
-            DebugUtil.logDebugGraph(monitor, lgraph, slotIndex, "finished");
-            // elkjs-exclude-end
-        } else {
-            // Invoke each layout processor
-            for (ILayoutProcessor<LGraph> processor : algorithm) {
-                if (monitor.isCanceled()) {
-                    return;
-                }
-
-                notifyProcessorReady(lgraph, processor);
-                processor.process(lgraph, monitor.subTask(monitorProgress));
-                notifyProcessorFinished(lgraph, processor);
-            }
         }
+        
+        // Invoke each layout processor
+        int slotIndex = 0;
+        for (ILayoutProcessor<LGraph> processor : algorithm) {
+            if (monitor.isCanceled()) {
+                return;
+            }
+            
+            // Output debug graph
+            // elkjs-exclude-start
+            if (monitor.isLoggingEnabled()) {
+                DebugUtil.logDebugGraph(monitor, lgraph, slotIndex, "Before " + processor.getClass().getSimpleName());
+            }
+            // elkjs-exclude-end
+            
+            notifyProcessorReady(lgraph, processor);
+            processor.process(lgraph, monitor.subTask(monitorProgress));
+            notifyProcessorFinished(lgraph, processor);
+            
+            slotIndex++;
+        }
+
+        // Graph debug output
+        // elkjs-exclude-start
+        if (monitor.isLoggingEnabled()) {
+            DebugUtil.logDebugGraph(monitor, lgraph, slotIndex, "Finished");
+        }
+        // elkjs-exclude-end
 
         // Move all nodes away from the layers (we need to remove nodes from their current layer in a
         // second loop to avoid ConcurrentModificationExceptions)
@@ -601,12 +622,14 @@ public final class ElkLayered {
             lgraph.getLayerlessNodes().addAll(layer.getNodes());
             layer.getNodes().clear();
         }
+        
         for (LNode node : lgraph.getLayerlessNodes()) {
             node.setLayer(null);
         }
+        
         lgraph.getLayers().clear();
 
-        if (!monitorStarted) {
+        if (!monitorWasAlreadyRunning) {
             monitor.done();
         }
     }

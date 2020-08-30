@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015 Kiel University and others.
+ * Copyright (c) 2015, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -153,6 +153,13 @@ class ElkGraphLayoutTransferrer {
     private void applyNodeLayout(final LNode lnode, final KVector offset) {
         final ElkNode elknode = (ElkNode) lnode.getProperty(InternalProperties.ORIGIN);
         
+        
+        // Apply the nodeID and layerId that were set on the LGraph on the ElkGraph
+        final int nodeID = lnode.getProperty(LayeredOptions.CROSSING_MINIMIZATION_POSITION_ID);
+        final int layerID = lnode.getProperty(LayeredOptions.LAYERING_LAYER_ID);
+        elknode.setProperty(LayeredOptions.CROSSING_MINIMIZATION_POSITION_ID, nodeID);
+        elknode.setProperty(LayeredOptions.LAYERING_LAYER_ID, layerID);
+        
         // Set the node position
         elknode.setX(lnode.getPosition().x + offset.x);
         elknode.setY(lnode.getPosition().y + offset.y);
@@ -191,7 +198,7 @@ class ElkGraphLayoutTransferrer {
         }
         
         // Set port label positions, if they were not fixed
-        if (lnode.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT) != PortLabelPlacement.FIXED) {
+        if (!PortLabelPlacement.isFixed(lnode.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT))) {
             for (LPort lport : lnode.getPorts()) {
                 for (LLabel llabel : lport.getLabels()) {
                     ElkLabel elklabel = (ElkLabel) llabel.getProperty(InternalProperties.ORIGIN);

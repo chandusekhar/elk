@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 Kiel University and others.
+ * Copyright (c) 2016, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -9,105 +9,95 @@
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
-import org.eclipse.elk.alg.layered.graph.LNode;
-import org.eclipse.elk.alg.layered.graph.LPort;
-import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
-import org.eclipse.elk.core.options.PortSide;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Streams;
 
 /**
- * Add constraint edges between partitions. </br>
- * In partitioned graphs, nodes may have an assigned partition. For every such node holds, that every other node
- * with a smaller partition is placed left to it. This is accomplished by adding partition constraint
- * edges. For each node, we add an edge to every node in the next greater partition. These edges get a
- * high priority assigned such that during cycle breaking, none of these constraint edges gets reversed.
- * During layering, the constraint edges assure the aforementioned condition.
- * The constraint edges are removed later by the {@link PartitionPostprocessor}.
+ * Reverses edges that connect higher-index to lower-index partitions. If all nodes have a partition set, the result is
+ * a graph that can only contain cycles among nodes in the same partition, and no edge reversed by this processor can be
+ * part of a cycle. Thus, the cycle breaker should not reverse any such edge again, resulting in an invalid
+ * partitioning.
+ * 
+ * <p>
+ * If there are nodes that do not have a partition configured, that's another story. Since there can be arbitrarily
+ * many such nodes connected in arbitrary ways, any edge we reverse here could be part of a cycle and thus be restored
+ * again during cycle breaking. We try to avoid this by imposing a high direction priority on them, but we cannot
+ * guarantee success.
+ * </p>
  *
  * <dl>
  *   <dt>Precondition:</dt>
  *     <dd>an unlayered graph.</dd>
  *   <dt>Postcondition:</dt>
- *     <dd>unlayered graph with partition constraint edges.</dd>
+ *     <dd>edges that contradict layout partitions are reversed.</dd>
  *   <dt>Slots:</dt>
  *     <dd>Before phase 1.</dd>
  *   <dt>Same-slot dependencies:</dt>
  *     <dd>None.</dd>
  * </dl>
- *
+ * 
+ * @see PartitionMidprocessor
  * @see PartitionPostprocessor
  */
 public class PartitionPreprocessor implements ILayoutProcessor<LGraph> {
 
-    /** The priority to set on added constraint edges. */
-    private static final int PARTITION_CONSTRAINT_EDGE_PRIORITY = 20;
+    /** The priority to set on added constraint edges (arbitrary, large value). */
+    private static final int PARTITION_CONSTRAINT_EDGE_PRIORITY = 1_000;
 
-    /** The nodes of the currently processed graph, sorted into partitions. */
-    private List<List<LNode>> partitions;
-
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void process(final LGraph lGraph, final IElkProgressMonitor monitor) {
-        monitor.begin("Adding partition constraint edges", 1);
-        partitions = Lists.newArrayList();
-        // Sort nodes into partitions.
-        for (LNode node : lGraph.getLayerlessNodes()) {
-            if (node.hasProperty(LayeredOptions.PARTITIONING_PARTITION)) {
-                Integer index = node.getProperty(LayeredOptions.PARTITIONING_PARTITION);
-                retrievePartition(index).add(node);
-            }
-        }
-
-        // Add edges from each node to every node in the next greater partition.
-        for (int i = 0; i < partitions.size() - 1; i++) {
-            for (LNode node : partitions.get(i)) {
-                LPort sourcePort = new LPort();
-                sourcePort.setNode(node);
-                sourcePort.setSide(PortSide.EAST);
-                sourcePort.setProperty(InternalProperties.PARTITION_DUMMY, true);
-                
-                for (LNode otherNode : partitions.get(i + 1)) {
-                    LPort targetPort = new LPort();
-                    targetPort.setNode(otherNode);
-                    targetPort.setSide(PortSide.WEST);
-                    targetPort.setProperty(InternalProperties.PARTITION_DUMMY, true);
-                    
-                    LEdge edge = new LEdge();
-                    edge.setProperty(InternalProperties.PARTITION_DUMMY, true);
-                    edge.setProperty(LayeredOptions.PRIORITY_DIRECTION, PARTITION_CONSTRAINT_EDGE_PRIORITY);
-                    edge.setSource(sourcePort);
-                    edge.setTarget(targetPort);
-                }
-            }
-        }
-        partitions = null;
+        monitor.begin("Partition preprocessing", 1);
+        
+        // Find all edges that must be reversed, and then reverse them (this needs to be a two-step process to avoid
+        // ConcurrentModificationExceptions)
+        List<LEdge> edgesToBeReversed = lGraph.getLayerlessNodes().stream()
+            .filter(lNode -> lNode.hasProperty(LayeredOptions.PARTITIONING_PARTITION))
+            .flatMap(lNode -> Streams.stream(lNode.getOutgoingEdges()))
+            .filter(lEdge -> mustBeReversed(lEdge))
+            .collect(Collectors.toList());
+            
+        edgesToBeReversed.stream()
+            .forEach(lEdge -> reverse(lEdge, lGraph));
+        
         monitor.done();
     }
-    
-    /**
-     * Retrieve the partition with the given index. If doesn't exist yet, the list of partitions is
-     * extended sufficiently.
-     * 
-     * @param index
-     *            the index of the partition to retrieve.
-     * @return the existing or newly created partition.
-     */
-    private List<LNode> retrievePartition(final int index) {
-        while (index >= partitions.size()) {
-            partitions.add(new ArrayList<LNode>());
+
+    private boolean mustBeReversed(final LEdge lEdge) {
+        assert lEdge.getSource().getNode().hasProperty(LayeredOptions.PARTITIONING_PARTITION);
+        
+        if (lEdge.getTarget().getNode().hasProperty(LayeredOptions.PARTITIONING_PARTITION)) {
+            // Avoid the performance overhead unboxing would incur since we're only comparing the two values
+            Integer sourcePartition = lEdge.getSource().getNode().getProperty(LayeredOptions.PARTITIONING_PARTITION);
+            Integer targetPartition = lEdge.getTarget().getNode().getProperty(LayeredOptions.PARTITIONING_PARTITION);
+            
+            // We need to reverse an edge if sourcePartition > targetPartition
+            return sourcePartition.compareTo(targetPartition) > 0;
+            
+        } else {
+            return false;
         }
-        return partitions.get(index);
+    }
+
+    private void reverse(final LEdge lEdge, final LGraph lGraph) {
+        lEdge.reverse(lGraph, true);
+        
+        // If the user has set a priority, add that to our base priority to allow them to fix issues where an edge is
+        // still being reversed
+        int priority = PARTITION_CONSTRAINT_EDGE_PRIORITY;
+        
+        if (lEdge.hasProperty(LayeredOptions.PRIORITY_DIRECTION)) {
+            priority += lEdge.getProperty(LayeredOptions.PRIORITY_DIRECTION);
+        }
+        
+        lEdge.setProperty(LayeredOptions.PRIORITY_DIRECTION, priority);
     }
 
 }

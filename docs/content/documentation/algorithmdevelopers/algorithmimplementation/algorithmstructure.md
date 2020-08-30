@@ -184,9 +184,7 @@ public enum NodeOrderStrategy implements ILayoutPhaseFactory<LayoutPhases, ElkNo
     NODE_ORDERER,
     ORDER_BALANCER;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public ILayoutPhase<LayoutPhases, ElkNode> create() {
         switch (this) {
         case NODE_ORDERER:
@@ -217,12 +215,11 @@ private final AlgorithmAssembler<LayoutPhases, ElkNode> algorithmAssembler =
     AlgorithmAssembler.<LayoutPhases, ElkNode>create(LayoutPhases.class);
 
 public void layout(ElkNode graph, IElkProgressMonitor progressMonitor) {
-    List<ILayoutProcessor<ElkNode>> algorithm =
-        assembleAlgorithm(graph);
+    List<ILayoutProcessor<ElkNode>> algorithm = assembleAlgorithm(graph);
 
     progressMonitor.begin("Tree layout", algorithm.size());
 
-    for (ILayoutProcessor<ElkNode> processor : assembleAlgorithm(graph)) {
+    for (ILayoutProcessor<ElkNode> processor : algorithm) {
         processor.process(graph, progressMonitor.subTask(1));
     }
 

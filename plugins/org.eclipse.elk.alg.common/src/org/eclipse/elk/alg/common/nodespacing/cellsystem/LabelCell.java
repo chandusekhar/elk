@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Kiel University and others.
+ * Copyright (c) 2017, 2019 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -9,7 +9,6 @@
  *******************************************************************************/
 package org.eclipse.elk.alg.common.nodespacing.cellsystem;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -90,12 +89,25 @@ public class LabelCell extends Cell {
      *            the label location represented by this cell. This determines things like alignment.
      */
     public LabelCell(final double gap, final NodeLabelLocation nodeLabelLocation) {
+        this(gap, nodeLabelLocation, true);
+    }
+    
+    /**
+     * Constructs a new instance with the given properties.
+     * 
+     * @param gap
+     *            gap between labels.
+     * @param nodeLabelLocation
+     *            the label location represented by this cell. This determines things like alignment.
+     * @param horizontalLayoutMode 
+     *            Whether we operate in horizontal or vertical layout mode.
+     */
+    public LabelCell(final double gap, final NodeLabelLocation nodeLabelLocation, final boolean horizontalLayoutMode) {
         this.gap = gap;
-        this.horizontalLayoutMode = true;
+        this.horizontalLayoutMode = horizontalLayoutMode;
         this.horizontalAlignment = nodeLabelLocation.getHorizontalAlignment();
         this.verticalAlignment = nodeLabelLocation.getVerticalAlignment();
     }
-    
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Getters / Setters
@@ -133,31 +145,25 @@ public class LabelCell extends Cell {
     }
 
     /**
-     * Returns the list of labels in this cell. The list cannot be modified. To add labels, call
-     * {@link #addLabel(LabelAdapter)}.
+     * Returns the list of labels in this cell. The list should not be modified, except to reorder the labels. To
+     * add labels to the cell, call {@link #addLabel(LabelAdapter)} instead.
      * 
      * @return unmodifiable list of labels.
      */
     public List<LabelAdapter<?>> getLabels() {
-        return Collections.unmodifiableList(labels);
+        return labels;
     }
     
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Cell
     
-    /* (non-Javadoc)
-     * @see org.eclipse.elk.core.util.nodespacing.internal.cells.Cell#getMinimumWidth()
-     */
     @Override
     public double getMinimumWidth() {
         ElkPadding padding = getPadding();
         return minimumContentAreaSize.x + padding.left + padding.right;
     }
 
-    /* (non-Javadoc)
-     * @see org.eclipse.elk.core.util.nodespacing.internal.cells.Cell#getMinimumHeight()
-     */
     @Override
     public double getMinimumHeight() {
         ElkPadding padding = getPadding();

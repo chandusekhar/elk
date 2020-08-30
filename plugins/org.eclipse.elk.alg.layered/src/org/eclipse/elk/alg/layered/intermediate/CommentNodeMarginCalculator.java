@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2019 Kiel University and others.
+ * Copyright (c) 2010, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -16,6 +16,7 @@ import org.eclipse.elk.alg.layered.graph.LMargin;
 import org.eclipse.elk.alg.layered.graph.LNode;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
+import org.eclipse.elk.alg.layered.options.Spacings;
 import org.eclipse.elk.core.alg.ILayoutProcessor;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
 
@@ -43,27 +44,32 @@ public final class CommentNodeMarginCalculator implements ILayoutProcessor<LGrap
         monitor.begin("Node margin calculation", 1);
 
         // Iterate through the layers to additionally handle comments
-        double nodeNodeSpacing = layeredGraph.getProperty(LayeredOptions.SPACING_NODE_NODE).doubleValue();
         layeredGraph.getLayers().stream()
             .flatMap(layer -> layer.getNodes().stream())
-            .forEach(lnode -> processComments(lnode, nodeNodeSpacing));
+            .forEach(lnode -> processComments(lnode));
 
         monitor.done();
     }
 
     /**
-     * Make some extra space for comment boxes that are placed near a node.
-     * 
-     * @param node
-     *            a node
-     * @param spacing
-     *            the overall spacing value
+     * Make some extra space for comment boxes that are placed near the given node.
      */
-    private void processComments(final LNode node, final double spacing) {
+    private void processComments(final LNode node) {
         LMargin margin = node.getMargin();
-
-        // Consider comment boxes that are put on top of the node
+        
         List<LNode> topBoxes = node.getProperty(InternalProperties.TOP_COMMENTS);
+        List<LNode> bottomBoxes = node.getProperty(InternalProperties.BOTTOM_COMMENTS);
+        
+        if (topBoxes == null && bottomBoxes == null) {
+            // Shortcut if there are no attached comments
+            return;
+        }
+        
+        // Retrieve the spacings that apply to this node
+        double commentCommentSpacing = Spacings.getIndividualOrDefault(node, LayeredOptions.SPACING_COMMENT_COMMENT);
+        double commentNodeSpacing = Spacings.getIndividualOrDefault(node, LayeredOptions.SPACING_COMMENT_NODE);
+        
+        // Consider comment boxes that are put on top of the node
         double topWidth = 0;
         if (topBoxes != null) {
             double maxHeight = 0;
@@ -71,12 +77,11 @@ public final class CommentNodeMarginCalculator implements ILayoutProcessor<LGrap
                 maxHeight = Math.max(maxHeight, commentBox.getSize().y);
                 topWidth += commentBox.getSize().x;
             }
-            topWidth += spacing / 2 * (topBoxes.size() - 1);
-            margin.top += maxHeight + spacing;
+            topWidth += commentCommentSpacing * (topBoxes.size() - 1);
+            margin.top += maxHeight + commentNodeSpacing;
         }
 
         // Consider comment boxes that are put in the bottom of the node
-        List<LNode> bottomBoxes = node.getProperty(InternalProperties.BOTTOM_COMMENTS);
         double bottomWidth = 0;
         if (bottomBoxes != null) {
             double maxHeight = 0;
@@ -84,8 +89,8 @@ public final class CommentNodeMarginCalculator implements ILayoutProcessor<LGrap
                 maxHeight = Math.max(maxHeight, commentBox.getSize().y);
                 bottomWidth += commentBox.getSize().x;
             }
-            bottomWidth += spacing / 2 * (bottomBoxes.size() - 1);
-            margin.bottom += maxHeight + spacing;
+            bottomWidth += commentCommentSpacing * (bottomBoxes.size() - 1);
+            margin.bottom += maxHeight + commentNodeSpacing;
         }
 
         // Check if the maximum width of the comments is wider than the node itself, which the comments

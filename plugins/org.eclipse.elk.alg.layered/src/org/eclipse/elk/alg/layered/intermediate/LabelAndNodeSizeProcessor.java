@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2015 Kiel University and others.
+ * Copyright (c) 2010, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -8,6 +8,8 @@
  * SPDX-License-Identifier: EPL-2.0
  *******************************************************************************/
 package org.eclipse.elk.alg.layered.intermediate;
+
+import java.util.Set;
 
 import org.eclipse.elk.alg.common.nodespacing.NodeDimensionCalculation;
 import org.eclipse.elk.alg.layered.graph.LGraph;
@@ -51,32 +53,31 @@ import org.eclipse.elk.core.util.IElkProgressMonitor;
  * </dl>
  * 
  * @see LabelSideSelector
- * @author cds
  */
 public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph> {
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("Node and Port Label Placement and Node Sizing", 1);
         
         NodeDimensionCalculation.calculateLabelAndNodeSizes(LGraphAdapters.adapt(
                 layeredGraph,
-                false,
                 true,
-                node -> node.getType() == NodeType.NORMAL || node.getType() == NodeType.BIG_NODE));
+                true,
+                node -> node.getType() == NodeType.NORMAL));
         
         // If the graph has external ports, we need to treat labels of external port dummies a bit differently,
         // which is the reason why we haven't handed them to the label and node size processing code
         if (layeredGraph.getProperty(InternalProperties.GRAPH_PROPERTIES).contains(GraphProperties.EXTERNAL_PORTS)) {
-            PortLabelPlacement portLabelPlacement = layeredGraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT);
-            boolean placeNextToPort = layeredGraph.getProperty(LayeredOptions.PORT_LABELS_NEXT_TO_PORT_IF_POSSIBLE);
+            Set<PortLabelPlacement> portLabelPlacement = layeredGraph.getProperty(LayeredOptions.PORT_LABELS_PLACEMENT);
+            boolean placeNextToPort = portLabelPlacement.contains(PortLabelPlacement.NEXT_TO_PORT_IF_POSSIBLE);
+            boolean treatAsGroup = layeredGraph.getProperty(LayeredOptions.PORT_LABELS_TREAT_AS_GROUP);
             
             for (Layer layer : layeredGraph.getLayers()) {
                 layer.getNodes().stream()
                         .filter(node -> node.getType() == NodeType.EXTERNAL_PORT)
-                        .forEach(dummy -> placeExternalPortDummyLabels(dummy, portLabelPlacement, placeNextToPort));
+                        .forEach(dummy -> placeExternalPortDummyLabels(
+                                dummy, portLabelPlacement, placeNextToPort, treatAsGroup));
             }
         }
         
@@ -87,9 +88,9 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
      * Places the labels of the given external port dummy such that it results in correct node margins later on that
      * will reserve enough space for the labels to be placed once label and node placement is called on the graph.
      */
-    private void placeExternalPortDummyLabels(final LNode dummy, final PortLabelPlacement graphPortLabelPlacement,
-            final boolean placeNextToPortIfPossible) {
-        
+    private void placeExternalPortDummyLabels(final LNode dummy, final Set<PortLabelPlacement> graphPortLabelPlacement,
+            final boolean placeNextToPortIfPossible, final boolean treatAsGroup) {
+    
         double labelPortSpacing = dummy.getProperty(LayeredOptions.SPACING_LABEL_PORT);
         double labelLabelSpacing = dummy.getProperty(LayeredOptions.SPACING_LABEL_LABEL);
         
@@ -106,7 +107,7 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
         
         // Determine the position of the box
         // TODO We could handle FIXED here as well
-        if (graphPortLabelPlacement == PortLabelPlacement.INSIDE) {
+        if (graphPortLabelPlacement.contains(PortLabelPlacement.INSIDE)) {
             // (port label placement has to support this case first, though)
             switch (dummy.getProperty(InternalProperties.EXT_PORT_SIDE)) {
             case NORTH:
@@ -120,8 +121,11 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
                 break;
                 
             case EAST:
-                if (labelNextToPort(dummyPort, placeNextToPortIfPossible)) {
-                    portLabelBox.y = (dummySize.y - portLabelBox.height) / 2 - dummyPortPos.y;
+                if (labelNextToPort(dummyPort, true, placeNextToPortIfPossible)) {
+                    double labelHeight = treatAsGroup
+                            ? portLabelBox.height
+                            : dummyPort.getLabels().get(0).getSize().y;
+                    portLabelBox.y = (dummySize.y - labelHeight) / 2 - dummyPortPos.y;
                 } else {
                     portLabelBox.y = dummySize.y + labelPortSpacing - dummyPortPos.y;
                 }
@@ -129,15 +133,18 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
                 break;
                 
             case WEST:
-                if (labelNextToPort(dummyPort, placeNextToPortIfPossible)) {
-                    portLabelBox.y = (dummySize.y - portLabelBox.height) / 2 - dummyPortPos.y;
+                if (labelNextToPort(dummyPort, true, placeNextToPortIfPossible)) {
+                    double labelHeight = treatAsGroup
+                            ? portLabelBox.height
+                            : dummyPort.getLabels().get(0).getSize().y;
+                    portLabelBox.y = (dummySize.y - labelHeight) / 2 - dummyPortPos.y;
                 } else {
                     portLabelBox.y = dummySize.y + labelPortSpacing - dummyPortPos.y;
                 }
                 portLabelBox.x = labelPortSpacing;
                 break;
             }
-        } else if (graphPortLabelPlacement == PortLabelPlacement.OUTSIDE) {
+        } else if (graphPortLabelPlacement.contains(PortLabelPlacement.OUTSIDE)) {
             switch (dummy.getProperty(InternalProperties.EXT_PORT_SIDE)) {
             case NORTH:
             case SOUTH:
@@ -146,7 +153,14 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
                 
             case EAST:
             case WEST:
-                portLabelBox.y = dummyPortPos.y + labelPortSpacing;
+                if (labelNextToPort(dummyPort, false, placeNextToPortIfPossible)) {
+                    double labelHeight = treatAsGroup
+                            ? portLabelBox.height
+                            : dummyPort.getLabels().get(0).getSize().y;
+                    portLabelBox.y = (dummySize.y - labelHeight) / 2 - dummyPortPos.y;
+                } else {
+                    portLabelBox.y = dummyPortPos.y + labelPortSpacing;
+                }
                 break;
             }
         }
@@ -190,10 +204,19 @@ public final class LabelAndNodeSizeProcessor implements ILayoutProcessor<LGraph>
      * case if the user requested port labels to be placed next to the port, if possible, and if the port has no
      * connections.
      */
-    private boolean labelNextToPort(final LPort dummyPort, final boolean placeNextToPortIfPossible) {
-        return placeNextToPortIfPossible
-                && dummyPort.getIncomingEdges().isEmpty()
-                && dummyPort.getOutgoingEdges().isEmpty();
+    private boolean labelNextToPort(final LPort dummyPort, final boolean insideLabels,
+            final boolean placeNextToPortIfPossible) {
+        
+        if (!placeNextToPortIfPossible) {
+            return false;
+        } else {
+            if (insideLabels) {
+                return dummyPort.getIncomingEdges().isEmpty()
+                        && dummyPort.getOutgoingEdges().isEmpty();
+            } else {
+                return !dummyPort.isConnectedToExternalNodes();
+            }
+        }
     }
     
 }

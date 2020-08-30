@@ -9,10 +9,13 @@
  *******************************************************************************/
 package org.eclipse.elk.graph.json.test
 
+import com.google.gson.JsonIOException
+import org.eclipse.elk.alg.test.PlainJavaInitialization
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.graph.json.ElkGraphJson
 import org.eclipse.elk.graph.json.JsonImportException
+import org.junit.BeforeClass
 import org.junit.Test
 
 import static org.junit.Assert.*
@@ -21,9 +24,14 @@ import static org.junit.Assert.*
  */
 class GraphTest {
     
+    @BeforeClass
+    static def void init() {
+        PlainJavaInitialization.initializePlainJavaLayout
+    }
+    
     @Test 
     def void graphMustBeObjectTest() {
-        ElkGraphJson.forGraph("{id:1}").toElk
+        ElkGraphJson.forGraph("{\"id\":1}").toElk
     }
     
     @Test(expected = JsonImportException) 
@@ -37,7 +45,7 @@ class GraphTest {
         {
           "id": "root",
           "properties": {
-            "direction": "DOWN"
+            "elk.direction": "DOWN"
           },
           "children": [{"id": "n1", "width": 40, "height": 40},
                       {"id": "n2", "width": 40, "height": 40}],
@@ -51,5 +59,32 @@ class GraphTest {
         assertTrue(root.containedEdges.size === 1)
         
         assertTrue(root.getProperty(CoreOptions.DIRECTION) == Direction.DOWN)
+    }
+    
+    val sloppyJsonGraph = '''
+        {
+          // the root node
+          id: "root",
+          /* Now the graph */ 
+          "children": [ {"id": "c"}; {"id": "c1"} ],
+          'edges': [] // Endline comment
+        }
+    '''
+    
+    @Test(expected = JsonIOException)
+    def void rejectSloppyJsonIfNotLenient() {
+         ElkGraphJson.forGraph(sloppyJsonGraph)
+                     .lenient(false)
+                     .toElk
+    }
+    
+    @Test
+    def void acceptSloppyJsonIfLenient() {
+        val root = ElkGraphJson.forGraph(sloppyJsonGraph).toElk
+        
+        assertEquals("root", root.identifier)
+        assertEquals(2, root.children.size)
+        assertEquals("c", root.children.head.identifier)
+        assertEquals("c1", root.children.last.identifier)
     }
 }

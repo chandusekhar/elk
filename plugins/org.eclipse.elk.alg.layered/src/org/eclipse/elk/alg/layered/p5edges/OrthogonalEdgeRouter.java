@@ -23,7 +23,7 @@ import org.eclipse.elk.alg.layered.options.GraphProperties;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.p5edges.orthogonal.OrthogonalRoutingGenerator;
-import org.eclipse.elk.alg.layered.p5edges.orthogonal.RoutingDirection;
+import org.eclipse.elk.alg.layered.p5edges.orthogonal.direction.RoutingDirection;
 import org.eclipse.elk.core.alg.ILayoutPhase;
 import org.eclipse.elk.core.alg.LayoutProcessorConfiguration;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
@@ -165,9 +165,7 @@ public final class OrthogonalEdgeRouter implements ILayoutPhase<LayeredPhases, L
             .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.END_LABEL_PREPROCESSOR)
             .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.END_LABEL_POSTPROCESSOR);
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public LayoutProcessorConfiguration<LayeredPhases, LGraph> getLayoutProcessorConfiguration(final LGraph graph) {
         Set<GraphProperties> graphProperties = graph.getProperty(InternalProperties.GRAPH_PROPERTIES);
         
@@ -214,9 +212,7 @@ public final class OrthogonalEdgeRouter implements ILayoutPhase<LayeredPhases, L
         return configuration;
     }
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor monitor) {
         monitor.begin("Orthogonal edge routing", 1);
         

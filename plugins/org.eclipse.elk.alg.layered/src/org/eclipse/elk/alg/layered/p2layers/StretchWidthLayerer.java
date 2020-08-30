@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 Kiel University and others.
+ * Copyright (c) 2016, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -96,19 +96,18 @@ public class StretchWidthLayerer implements ILayoutPhase<LayeredPhases, LGraph> 
     /** the size of the dummy nodes, that should be considered. */
     private double dummySize;
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public LayoutProcessorConfiguration<LayeredPhases, LGraph> getLayoutProcessorConfiguration(final LGraph graph) {
         return LayoutProcessorConfiguration.<LayeredPhases, LGraph>create()
                 .addBefore(LayeredPhases.P1_CYCLE_BREAKING,
                         IntermediateProcessorStrategy.EDGE_AND_LAYER_CONSTRAINT_EDGE_REVERSER)
-                .addBefore(LayeredPhases.P3_NODE_ORDERING, IntermediateProcessorStrategy.LAYER_CONSTRAINT_PROCESSOR);
+                .addBefore(LayeredPhases.P2_LAYERING,
+                        IntermediateProcessorStrategy.LAYER_CONSTRAINT_PREPROCESSOR)
+                .addBefore(LayeredPhases.P3_NODE_ORDERING,
+                        IntermediateProcessorStrategy.LAYER_CONSTRAINT_POSTPROCESSOR);
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor progressMonitor) {
         progressMonitor.begin("StretchWidth layering", 1);
 

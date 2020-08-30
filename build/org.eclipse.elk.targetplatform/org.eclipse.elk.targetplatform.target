@@ -1,43 +1,19 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <?pde version="3.8"?>
-<target name="Generated from Eclipse Layout Kernel" sequenceNumber="2">
+<target name="Generated from Eclipse Layout Kernel" sequenceNumber="4">
   <locations>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="javax.transaction" version="0.0.0"/>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="true" type="InstallableUnit">
+      <unit id="javax.websocket" version="0.0.0"/>
       <unit id="org.eclipse.gmf.runtime.sdk.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.graphiti.sdk.feature.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.jst.ws.jaxws.feature.feature.group" version="0.0.0"/>
       <unit id="org.eclipse.lsp4j.sdk.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.uml2.sdk.feature.group" version="0.0.0"/>
-      <unit id="org.eclipse.xpand" version="0.0.0"/>
-      <unit id="org.eclipse.xtend.typesystem.emf" version="0.0.0"/>
-      <unit id="org.objectweb.asm" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/releases/2019-06"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
       <unit id="org.eclipse.xtext.sdk.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/modeling/tmf/xtext/updates/releases/2.16.0/"/>
+      <repository location="http://download.eclipse.org/releases/2019-12"/>
     </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.eclipse.equinox.executable.feature.group" version="0.0.0"/>
+    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="true" type="InstallableUnit">
+      <unit id="com.google.gson" version="0.0.0"/>
       <unit id="org.eclipse.sdk.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/eclipse/updates/4.12/R-4.12-201906051800"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.eclipse.emf.mwe2.language.sdk.feature.group" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/modeling/tmf/xtext/updates/composite/releases/"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="org.ptolemy.feature.feature.group" version="0.0.0"/>
-      <repository location="http://rtsys.informatik.uni-kiel.de/~kieler/updatesite/ptolemy/"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="de.itemis.xtext.antlr.sdk.feature.group" version="0.0.0"/>
-      <repository location="http://xtext.github.io/download/updates/releases/2.1.1/"/>
-    </location>
-    <location includeAllPlatforms="false" includeConfigurePhase="true" includeMode="planner" includeSource="false" type="InstallableUnit">
-      <unit id="com.google.guava" version="0.0.0"/>
-      <repository location="http://download.eclipse.org/tools/orbit/downloads/drops/R20190602212107/repository"/>
+      <unit id="org.hamcrest.library" version="0.0.0"/>
+      <repository location="http://download.eclipse.org/eclipse/updates/4.14/R-4.14-201912100610"/>
     </location>
   </locations>
 </target>

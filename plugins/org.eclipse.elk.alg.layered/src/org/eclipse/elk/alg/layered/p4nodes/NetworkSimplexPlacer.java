@@ -202,9 +202,7 @@ public class NetworkSimplexPlacer implements ILayoutPhase<LayeredPhases, LGraph>
     /** Epsilon for double equality testing. */
     private static final double EPSILON = 0.00001d;
     
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public LayoutProcessorConfiguration<LayeredPhases, LGraph> getLayoutProcessorConfiguration(final LGraph graph) {
         if (graph.getProperty(InternalProperties.GRAPH_PROPERTIES)
                 .contains(GraphProperties.EXTERNAL_PORTS)) {
@@ -214,9 +212,6 @@ public class NetworkSimplexPlacer implements ILayoutPhase<LayeredPhases, LGraph>
         }
     }
     
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void process(final LGraph layeredGraph, final IElkProgressMonitor progressMonitor) {
         progressMonitor.begin("Network simplex node placement", 1);
@@ -589,7 +584,9 @@ public class NetworkSimplexPlacer implements ILayoutPhase<LayeredPhases, LGraph>
         if (!tgtRep.isFlexible) {
             tgtOffset += tgtPort.getPosition().y;
         } 
-        assert (srcOffset - tgtOffset) == Math.round(srcOffset - tgtOffset) : "Port positions must be integral";
+        assert DoubleMath.fuzzyEquals(srcOffset - tgtOffset, Math.round(srcOffset - tgtOffset),
+                EPSILON) : "Port positions must be integral";
+        
         int tgtDelta = (int) Math.max(0, srcOffset - tgtOffset);
         int srcDelta = (int) Math.max(0, tgtOffset - srcOffset);
 

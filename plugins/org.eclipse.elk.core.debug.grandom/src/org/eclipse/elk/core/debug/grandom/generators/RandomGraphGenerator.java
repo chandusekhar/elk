@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2011, 2018 Kiel University and others.
+ * Copyright (c) 2011, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -20,6 +20,7 @@ import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 
+import org.eclipse.elk.core.debug.grandom.gRandom.Configuration;
 import org.eclipse.elk.core.debug.grandom.generators.GeneratorOptions.RandVal;
 import org.eclipse.elk.core.math.ElkMath;
 import org.eclipse.elk.core.options.CoreOptions;
@@ -41,10 +42,7 @@ import com.google.common.collect.Sets;
 
 
 /**
- * The random graph generator for KGraphs.
- *
- * @author mri
- * @author msp
+ * The random graph generator for ELK graphs.
  */
 public class RandomGraphGenerator {
 
@@ -64,7 +62,10 @@ public class RandomGraphGenerator {
     private int portLabelCounter;
 
     private int maxHierarchyLevel;
-
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Constructor
+    
     /**
      * Create a random graph generator with given random number generator.
      *
@@ -74,9 +75,12 @@ public class RandomGraphGenerator {
     public RandomGraphGenerator(final Random random) {
         this.random = random;
     }
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Random Graph Generation API
 
     /**
-     * {@inheritDoc}
+     * Generate a random graph based on the given generator options.
      */
     public ElkNode generate(final GeneratorOptions opts) {
         // reset the generator
@@ -94,17 +98,48 @@ public class RandomGraphGenerator {
             return makeGraph(parent);
         }
     }
+    
+    /**
+     * Creates a number of random graphs based on the supplied configuration.
+     */
+    public List<ElkNode> generate(final Configuration config) {
+        List<ElkNode> generated = new ArrayList<>();
+        
+        // Parse configuration
+        random = randomGeneratorFromConfig(config);
+        GeneratorOptions opts = ConfigurationParser.parse(config, random);
+        
+        // Generate graphs
+        int graphCount = Math.max(1, config.getSamples());
+        for (int i = 0; i < graphCount; i++) {
+            generated.add(generate(opts));
+        }
+        
+        return generated;
+    }
+    
+    /**
+     * Returns a new random number generator initialized with a seed as specified by the supplied configuration.
+     */
+    private Random randomGeneratorFromConfig(final Configuration config) {
+        Integer seed = config.getSeed();
+        if (seed == null) {
+            return new Random();
+        } else {
+            return new Random(seed);
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // Implementation
 
     private List<List<ElkNode>> addHierarchicalNodes(final ElkNode parent) {
-        /**
-         * List that contains all the generated children(children of the same node are in the same
-         * sublist)
-         */
+        // List that contains all the generated children(children of the same node are in the same
+        // sublist)
         List<List<ElkNode>> atomicNodes = new ArrayList<>();
         Deque<ElkNode> allGraphs = new LinkedList<ElkNode>();
-        /**
-         * the graphs in the actual level(that should get children)
-         */
+        
+        // the graphs in the actual level(that should get children)
         allGraphs.push(parent);
         for (int i = 0; i < maxHierarchyLevel; i++) {
             List<ElkNode> hierarchicalNodes = new ArrayList<>();
@@ -163,7 +198,6 @@ public class RandomGraphGenerator {
     }
 
     private ElkNode makeGraph(final ElkNode graph) {
-
         if (!get(GeneratorOptions.ENABLE_HIERARCHY)) {
             set(GeneratorOptions.HIERARCHY_CHANCE, 0.0f);
             set(GeneratorOptions.CROSS_HIERARCHY_EDGES, false);
@@ -970,9 +1004,7 @@ public class RandomGraphGenerator {
      */
     private static class HeadComparator implements Comparator<HierarchyEdge> {
 
-        /**
-         * {@inheritDoc}
-         */
+        @Override
         public int compare(final HierarchyEdge edge1, final HierarchyEdge edge2) {
             return edge1.getHead() < edge2.getHead() ? -1
                     : (edge1.getHead() > edge2.getHead() ? 1 : compareId(edge1, edge2));
@@ -984,9 +1016,7 @@ public class RandomGraphGenerator {
      */
     private static class TailComparator implements Comparator<HierarchyEdge> {
 
-        /**
-         * {@inheritDoc}
-         */
+        @Override
         public int compare(final HierarchyEdge edge1, final HierarchyEdge edge2) {
             return edge1.getTail() < edge2.getTail() ? -1
                     : (edge1.getTail() > edge2.getTail() ? 1 : compareId(edge1, edge2));

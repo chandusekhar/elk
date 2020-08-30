@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 
+import org.eclipse.elk.core.data.DeprecatedLayoutOptionReplacer;
 import org.eclipse.elk.core.data.LayoutAlgorithmData;
 import org.eclipse.elk.core.data.LayoutAlgorithmResolver;
 import org.eclipse.elk.core.options.CoreOptions;
@@ -84,6 +85,8 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
         int nodeCount = countNodesRecursively(layoutGraph, true);
         progressMonitor.begin("Recursive Graph Layout", nodeCount);
         
+        ElkUtil.applyVisitors(layoutGraph, new DeprecatedLayoutOptionReplacer());
+
         if (!layoutGraph.hasProperty(CoreOptions.RESOLVED_ALGORITHM)) {
             // Apply the default algorithm resolver to the graph in order to obtain algorithm meta data
             ElkUtil.applyVisitors(layoutGraph, new LayoutAlgorithmResolver());
@@ -288,10 +291,9 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
     // Hierarchy Handling
     
     /**
-     * Evaluates one level of inheritance for property {@link CoreOptions#HIERARCHY_HANDLING}.
-     * Additionally provides legacy support for property {@link CoreOptions#LAYOUT_HIERARCHY} and
-     * replaces it with the new property. If the root node is evaluated and it is set to inherit (or
-     * not set at all) the property is set to {@link HierarchyHandling#SEPARATE_CHILDREN}.
+     * Evaluates one level of inheritance for property {@link CoreOptions#HIERARCHY_HANDLING}. If the root node is
+     * evaluated and it is set to inherit (or not set at all) the property is set to
+     * {@link HierarchyHandling#SEPARATE_CHILDREN}.
      * 
      * @param layoutNode
      *            The current node which should be evaluated

@@ -4,7 +4,7 @@
   This program and the accompanying materials are made available under the
   terms of the Eclipse Public License 2.0 which is available at
   http://www.eclipse.org/legal/epl-2.0.
-  
+
   SPDX-License-Identifier: EPL-2.0
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -14,7 +14,7 @@
   <groupId>org.eclipse.elk</groupId>
   <name>Eclipse Layout Kernel</name>
   <url>https://www.eclipse.org/elk/</url>
-  <version>0.7.0-SNAPSHOT</version>
+  <version>0.8.0-SNAPSHOT</version>
   <description>An infrastructure for automatic graph layout and implementations of different layout algorithms.</description>
   <packaging>pom</packaging>
 
@@ -22,8 +22,8 @@
   <!-- Define a few properties used throughout all build profiles. -->
   <properties>
     <targetJdk>1.8</targetJdk>
-    <tycho-version>1.4.0</tycho-version>
-    <xtext-version>2.16.0</xtext-version>
+    <tycho-version>1.6.0</tycho-version>
+    <xtext-version>2.20.0</xtext-version>
     <elk-version>${project.version}</elk-version>
 
     <!-- chsch: copied from https://eclipse.googlesource.com/recommenders/org.eclipse.recommenders/+/3dae4575d3370da2da25a1cbce3dfcff198f0611/features/pom.xml -->
@@ -66,19 +66,6 @@
         <module>../plugins/org.eclipse.elk.graph</module>
         <module>../plugins/org.eclipse.elk.core.meta</module>
       </modules>
-
-      <!-- The meta data language compiler gets pushed to a Maven repository. -->
-      <distributionManagement>
-        <repository>
-          <id>elk-meta-repository</id>
-          <name>ELK Meta Data Language Compiler Repository</name>
-          <url>${elkMeta.publishUrl}</url>
-          <layout>default</layout>
-          <uniqueVersion>false</uniqueVersion>
-        </repository>
-
-        <downloadUrl>${elkMeta.repositoryUrl}</downloadUrl>
-      </distributionManagement>
     </profile>
 
     <!-- Activate to have the generated artifacts signed by Eclipse. -->
@@ -122,45 +109,6 @@
       </distributionManagement>
       <build>
         <plugins>
-          <!-- Create Javadoc jars. -->
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-javadoc-plugin</artifactId>
-            <version>2.10.4</version>
-            <configuration>
-              <failOnError>false</failOnError>
-              <tags>
-                <tag>
-                  <name>model</name>
-                  <placement>a</placement>
-                  <head>Model</head>
-                </tag>
-                <tag>
-                  <name>generated</name>
-                  <placement>a</placement>
-                  <head>Generated</head>
-                </tag>
-                <tag>
-                  <name>ordered</name>
-                  <placement>a</placement>
-                  <head>Ordered</head>
-                </tag>
-                <tag>
-                  <name>implSpec</name>
-                  <placement>a</placement>
-                  <head>Implementation Specification</head>
-                </tag>
-              </tags>
-            </configuration>
-            <executions>
-              <execution>
-                <id>attach-javadocs</id>
-                <goals>
-                  <goal>jar</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
           <!-- Create GPG signatures. -->
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -244,13 +192,21 @@
       </plugin>
 
       <!-- Enable Java assertions during JUnit test runs. -->
-      <!-- The "enableAssertions" property is only available in the maven-surefire plugin. -->
       <plugin>
         <groupId>org.eclipse.tycho</groupId>
         <artifactId>tycho-surefire-plugin</artifactId>
         <version>${tycho-version}</version>
         <configuration>
-          <argLine>-ea</argLine>
+          <enableAssertions>true</enableAssertions>
+          <!-- There seems to be an issue with executing several tests in parallel in that
+               it can happen that failed tests are eventually reported as having succeeded.
+               A resolution is to set forkCount=1 and reuseForks=false
+               See, e.g. the following stackoverflow post:
+               https://stackoverflow.com/questions/3365628/junit-tests-pass-in-eclipse-but-fail-in-maven-surefire -->
+          <!-- parallel>classes</parallel -->
+          <!-- threadCount>4</threadCount -->
+          <reuseForks>false</reuseForks>
+          <forkCount>1</forkCount>
           <excludes>
             <exclude>**/TestUtil.java</exclude>
           </excludes>
@@ -361,10 +317,66 @@
 
         <!-- Child projects may use this to be exempted from inclusion in the Maven repository -->
         <plugin>
-           <groupId>org.apache.maven.plugins</groupId>
-           <artifactId>maven-deploy-plugin</artifactId>
-           <version>2.8.2</version>
-       </plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-deploy-plugin</artifactId>
+          <version>2.8.2</version>
+        </plugin>
+
+        <!-- Configure Eclipse m2e to ignore certain plugin goals when integrating Maven build
+             settings into Eclipse. -->
+        <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-compiler-plugin</artifactId>
+                    <versionRange>${tycho-version}</versionRange>
+                    <goals>
+                      <goal>compile</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore/>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.eclipse.tycho</groupId>
+                    <artifactId>tycho-packaging-plugin</artifactId>
+                    <versionRange>${tycho-version}</versionRange>
+                    <goals>
+                      <goal>build-qualifier</goal>
+                      <goal>build-qualifier-aggregator</goal>
+                      <goal>validate-id</goal>
+                      <goal>validate-version</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore/>
+                  </action>
+                </pluginExecution>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <versionRange>[3.0.0,)</versionRange>
+                    <goals>
+                      <goal>clean</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore/>
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
 
       </plugins>
     </pluginManagement>
@@ -376,10 +388,10 @@
     <pluginRepository>
       <id>central</id>
       <name>Maven Plugin Repository</name>
-      <url>http://central.maven.org/maven2</url>
+      <url>https://repo.maven.apache.org/maven2</url>
       <layout>default</layout>
       <snapshots>
-        <enabled>false</enabled>
+        <enabled>true</enabled>
       </snapshots>
     </pluginRepository>
 
@@ -387,12 +399,6 @@
       <id>eclipse-cbi</id>
       <name>Eclipse Common Build Infrastructure Maven Repository</name>
       <url>https://repo.eclipse.org/content/repositories/cbi-releases/</url>
-    </pluginRepository>
-
-    <pluginRepository>
-      <id>eclipse-elk-meta</id>
-      <name>ELK Meta Data Language Compiler Maven Repository</name>
-      <url>${elkMeta.repositoryUrl}</url>
     </pluginRepository>
   </pluginRepositories>
 

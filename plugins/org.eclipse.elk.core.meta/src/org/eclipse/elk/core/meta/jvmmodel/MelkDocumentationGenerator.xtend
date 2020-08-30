@@ -42,7 +42,7 @@ import org.eclipse.elk.core.meta.metaData.MdOptionDependency
  * Generates documentation from the source model that pertains to a *.melk file.
  * <p>
  * For each algorithm, option and group in the model, a Markdown file is created in the directory specified by
- * the vm argument {@code elk.metadata.documentation.folder}. This path usually points to the docs folder in the
+ * the vm argument {@code elk.metadata.documentation.outputPath}. This path usually points to the docs folder in the
  * git repository for elk, when the Oomph setup appends the vm argument to the eclipse.ini.
  * The docs folder in the master branch will be hosted on a Github page.
  * </p>
@@ -54,17 +54,17 @@ class MelkDocumentationGenerator extends JvmModelGenerator {
      * The {@code IFileSystemAccess} used to read additional documentation files stored within the Eclipse project that
      * contains the model.
      */
-    private IFileSystemAccess fsa
+    IFileSystemAccess fsa
     /** The place where the generated algorithm documentation is stored. */
-    private Path algorithmsOutputPath
+    Path algorithmsOutputPath
     /** The place where the generated layout option documentation is stored. */
-    private Path optionsOutputPath
+    Path optionsOutputPath
     /** The place where the generated layout option group documentation is stored. */
-    private Path optionGroupsOutputPath
+    Path optionGroupsOutputPath
     /** The place where images are stored. */
-    private Path imageOutputPath
+    Path imageOutputPath
     /** The directory containing additional documentation files. */
-    private Path projectDocumentationSourceFolder
+    Path projectDocumentationSourceFolder
     
     /**
      * The method {@code internalDoGenerate} is called for each {@link MdModel} derived from a *.melk file.
@@ -549,7 +549,7 @@ class MelkDocumentationGenerator extends JvmModelGenerator {
         }
         
         // copy all images to the output location and update their URLs in the documentation
-            // regex doesn't work here because links may contain parentheses that have to be counted
+        // regex doesn't work here because links may contain parentheses that have to be counted
         var res = ""
         var int i = 0
         var int l = doc.length
@@ -586,7 +586,7 @@ class MelkDocumentationGenerator extends JvmModelGenerator {
                 val newFileName = fileNamePrefix + "_" + path.substring(path.lastIndexOf('/') + 1)
                 projectDocumentationSourceFolder.resolve(path).toString.copyImageToOutputPath(newFileName)
                 // replace the URL with the new path
-                res += "{{< image src=\"" + newFileName + "\" alt=\"Preview Image\" gen=\"1\" >}}\n\n"
+                res += "{{< image src=\"" + newFileName + "\" alt=\"" + imgTitle + "\" gen=\"1\" >}}\n\n"
                 i++;
             }
         }
@@ -664,16 +664,16 @@ class MelkDocumentationGenerator extends JvmModelGenerator {
     /**
      * Possible values for enumeration types.
      */
-    private def Iterable<JvmField> getPossibleValues(JvmTypeReference type) {
+    private def Iterable<? extends JvmField> getPossibleValues(JvmTypeReference type) {
         if (type !== null) {
             val jvmType = type.type
             if (jvmType instanceof JvmEnumerationType) {
-                val dType = jvmType as JvmDeclaredType
-                return dType.declaredFields
+                val enumType = jvmType as JvmEnumerationType
+                return enumType.literals
             // in case of EnumSet the inner type is extracted
             } else if (jvmType.identifier == EnumSet.canonicalName) {
-                val dType = (type as JvmParameterizedTypeReference).arguments.head.type as JvmDeclaredType
-                return dType.declaredFields
+                val enumType = (type as JvmParameterizedTypeReference).arguments.head.type as JvmEnumerationType
+                return enumType.literals
             }
         }
         return null

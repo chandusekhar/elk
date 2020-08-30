@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2010, 2017 Kiel University and others.
+ * Copyright (c) 2010, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -42,32 +42,32 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     EDGE_AND_LAYER_CONSTRAINT_EDGE_REVERSER,
     /** If one of the phases is set to interactive mode, this processor positions external ports. */
     INTERACTIVE_EXTERNAL_PORT_POSITIONER,
-    /** Add constraint edges to respect partitioning of nodes. */
+    /** Reverse edges that run from higher-index to lower-index partitions. */
     PARTITION_PREPROCESSOR,
     
     // Before Phase 2
 
-    /** Splits big nodes into multiple layers to distribute them better and reduce whitespace. */
-    BIG_NODES_PREPROCESSOR,
     /** Adds dummy nodes in edges where center labels are present. */
     LABEL_DUMMY_INSERTER,
     /** Takes care of self loop preprocessing. */
     SELF_LOOP_PREPROCESSOR,
+    /** Hides {@code FIRST_SEPARATE} and {@code LAST_SEPARATE} nodes. */
+    LAYER_CONSTRAINT_PREPROCESSOR,
+    /** Adds edges that force layering algorithms to respect layout partitions. */
+    PARTITION_MIDPROCESSOR,
 
     // Before Phase 3
     
     /** Moves trees of high degree nodes to separate layers. */
     HIGH_DEGREE_NODE_LAYER_PROCESSOR,
-    /** Remove partition constraint edges. */
-    PARTITION_POSTPROCESSOR,
     /** Node-promotion for prettier graphs, especially algorithms like longest-path are prettified. */
     NODE_PROMOTION,
-    /** Makes sure that layer constraints are taken care of. */
-    LAYER_CONSTRAINT_PROCESSOR,
+    /** Restores {@code FIRST_SEPARATE} and {@code LAST_SEPARATE} nodes and enforces layer constraints. */
+    LAYER_CONSTRAINT_POSTPROCESSOR,
+    /** Remove partition constraint edges. */
+    PARTITION_POSTPROCESSOR,
     /** Handles northern and southern hierarchical ports. */
     HIERARCHICAL_PORT_CONSTRAINT_PROCESSOR,
-    /** Process layered big nodes, such that they are not interrupted by long edge nodes. */
-    BIG_NODES_INTERMEDIATEPROCESSOR,
     /** Adds successor constraints between regular nodes before crossing minimization. */
     SEMI_INTERACTIVE_CROSSMIN_PROCESSOR,
     /** Inserts breaking points which are used to 'wrap' the graph after crossing minimization. */
@@ -80,6 +80,8 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     INVERTED_PORT_PROCESSOR,
     /** Orders the port lists of nodes with fixed port order. */
     PORT_LIST_SORTER,
+    /** Sorts nodes and edges according to their order in the input model. */
+    SORT_BY_INPUT_ORDER_OF_MODEL,
     /** Inserts dummy nodes to take care of northern and southern ports. */
     NORTH_SOUTH_PORT_PREPROCESSOR,
 
@@ -97,8 +99,6 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     SINGLE_EDGE_GRAPH_WRAPPER,
     /** Makes sure that in-layer constraints are handled. */
     IN_LAYER_CONSTRAINT_PROCESSOR,
-    /** Alternative big nodes handling, splitting nodes _after_ crossing minimization. */
-    BIG_NODES_SPLITTER,
     /** Manages edge end labels, node labels, and port labels. */
     END_NODE_PORT_LABEL_MANAGEMENT_PROCESSOR,
     /** Sets the positions of ports and labels, and sets the node sizes. */
@@ -128,11 +128,11 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     LAYER_SIZE_AND_GRAPH_HEIGHT_CALCULATOR,
     /** Fix coordinates of hierarchical port dummy nodes. */
     HIERARCHICAL_PORT_POSITION_PROCESSOR,
-    /** Merges dummy nodes originating from big nodes. */
-    BIG_NODES_POSTPROCESSOR,
 
     // After Phase 5
-
+    
+    /** Adds the layer and positions that were computed to the nodes. */
+    CONSTRAINTS_POSTPROCESSOR,
     /** Reinserts and places comment boxes that have been removed before. */
     COMMENT_POSTPROCESSOR,
     /** Moves hypernodes horizontally for better placement. */
@@ -155,6 +155,8 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     /** Processor that calculates final control points for splines as intended by the 
      * {@link org.eclipse.elk.alg.layered.p5edges.splines.SplineEdgeRouter SplineEdgeRouter}. */
     FINAL_SPLINE_BENDPOINTS_CALCULATOR,
+    /** Sorts multiple end labels to reflect the order of source or target nodes. */
+    END_LABEL_SORTER,
     /** Takes the reversed edges of a graph and restores their original direction. */
     REVERSED_EDGE_RESTORER,
     /** Assign correct coordinates to end labels. */
@@ -173,18 +175,6 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
     public ILayoutProcessor<LGraph> create() {
         switch (this) {
 
-        case BIG_NODES_INTERMEDIATEPROCESSOR:
-            return new BigNodesIntermediateProcessor();
-
-        case BIG_NODES_POSTPROCESSOR:
-            return new BigNodesPostProcessor();
-
-        case BIG_NODES_PREPROCESSOR:
-            return new BigNodesPreProcessor();
-
-        case BIG_NODES_SPLITTER:
-            return new BigNodesSplitter();
-            
         case BREAKING_POINT_INSERTER:
             return new BreakingPointInserter();
             
@@ -205,6 +195,9 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
             
         case COMMENT_PREPROCESSOR:
             return new CommentPreprocessor();
+            
+        case CONSTRAINTS_POSTPROCESSOR:
+            return new ConstraintsPostprocessor();
 
         case DIRECTION_POSTPROCESSOR:
             return new GraphTransformer(GraphTransformer.Mode.TO_INTERNAL_LTR);
@@ -280,10 +273,16 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
             
         case LABEL_SIDE_SELECTOR:
             return new LabelSideSelector();
+        
+        case END_LABEL_SORTER:
+            return new EndLabelSorter();
 
-        case LAYER_CONSTRAINT_PROCESSOR:
-            return new LayerConstraintProcessor();
+        case LAYER_CONSTRAINT_POSTPROCESSOR:
+            return new LayerConstraintPostprocessor();
 
+        case LAYER_CONSTRAINT_PREPROCESSOR:
+            return new LayerConstraintPreprocessor();
+            
         case LAYER_SIZE_AND_GRAPH_HEIGHT_CALCULATOR:
             return new LayerSizeAndGraphHeightCalculator();
 
@@ -304,6 +303,9 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
 
         case ONE_SIDED_GREEDY_SWITCH:
             return new LayerSweepCrossingMinimizer(CrossMinType.ONE_SIDED_GREEDY_SWITCH);
+            
+        case PARTITION_MIDPROCESSOR:
+            return new PartitionMidprocessor();
 
         case PARTITION_POSTPROCESSOR:
             return new PartitionPostprocessor();
@@ -337,6 +339,9 @@ public enum IntermediateProcessorStrategy implements ILayoutProcessorFactory<LGr
 
         case SINGLE_EDGE_GRAPH_WRAPPER:
             return new SingleEdgeGraphWrapper();
+            
+        case SORT_BY_INPUT_ORDER_OF_MODEL:
+            return new SortByInputModelProcessor();
             
         case TWO_SIDED_GREEDY_SWITCH:
             return new LayerSweepCrossingMinimizer(CrossMinType.TWO_SIDED_GREEDY_SWITCH);

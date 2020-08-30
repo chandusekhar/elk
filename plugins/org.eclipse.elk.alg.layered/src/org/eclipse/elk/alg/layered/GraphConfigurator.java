@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2015 Kiel University and others.
+ * Copyright (c) 2015, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -23,6 +23,7 @@ import org.eclipse.elk.alg.layered.options.GreedySwitchType;
 import org.eclipse.elk.alg.layered.options.InternalProperties;
 import org.eclipse.elk.alg.layered.options.LayeredOptions;
 import org.eclipse.elk.alg.layered.options.NodePromotionStrategy;
+import org.eclipse.elk.alg.layered.options.OrderingStrategy;
 import org.eclipse.elk.alg.layered.options.Spacings;
 import org.eclipse.elk.alg.layered.p5edges.EdgeRouterFactory;
 import org.eclipse.elk.core.alg.AlgorithmAssembler;
@@ -55,7 +56,8 @@ final class GraphConfigurator {
             .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.INNERMOST_NODE_MARGIN_CALCULATOR)
             .addBefore(LayeredPhases.P4_NODE_PLACEMENT, IntermediateProcessorStrategy.LABEL_AND_NODE_SIZE_PROCESSOR)
             .addBefore(LayeredPhases.P5_EDGE_ROUTING,
-                    IntermediateProcessorStrategy.LAYER_SIZE_AND_GRAPH_HEIGHT_CALCULATOR);
+                    IntermediateProcessorStrategy.LAYER_SIZE_AND_GRAPH_HEIGHT_CALCULATOR)
+            .addAfter(LayeredPhases.P5_EDGE_ROUTING, IntermediateProcessorStrategy.END_LABEL_SORTER);
     
     /** intermediate processors for label management. */
     private static final LayoutProcessorConfiguration<LayeredPhases, LGraph> LABEL_MANAGEMENT_ADDITIONS =
@@ -213,6 +215,12 @@ final class GraphConfigurator {
         if (lgraph.getProperty(LabelManagementOptions.LABEL_MANAGER) != null) {
             configuration.addAll(LABEL_MANAGEMENT_ADDITIONS);
         }
+        
+        // If the graph should be laid out interactively, add the layers and positions to the nodes.
+        if (lgraph.getProperty(LayeredOptions.INTERACTIVE_LAYOUT)) {
+            configuration.addAfter(LayeredPhases.P5_EDGE_ROUTING, 
+                    IntermediateProcessorStrategy.CONSTRAINTS_POSTPROCESSOR);
+        }
 
         // graph transformations for unusual layout directions
         switch (lgraph.getProperty(LayeredOptions.DIRECTION)) {
@@ -247,6 +255,8 @@ final class GraphConfigurator {
         if (graphProperties.contains(GraphProperties.PARTITIONS)) {
             configuration.addBefore(LayeredPhases.P1_CYCLE_BREAKING,
                     IntermediateProcessorStrategy.PARTITION_PREPROCESSOR);
+            configuration.addBefore(LayeredPhases.P2_LAYERING,
+                    IntermediateProcessorStrategy.PARTITION_MIDPROCESSOR);
             configuration.addBefore(LayeredPhases.P3_NODE_ORDERING,
                     IntermediateProcessorStrategy.PARTITION_POSTPROCESSOR);
         }
@@ -270,12 +280,19 @@ final class GraphConfigurator {
         }
 
         // Configure greedy switch
+        //  Note that in the case of hierarchical layout, the configuration may further be adjusted by
+        //  ElkLayered#reviewAndCorrectHierarchicalProcessors(...)
         if (activateGreedySwitchFor(lgraph)) {
-            GreedySwitchType greedySwitchType =
-                    lgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE);
+            final GreedySwitchType greedySwitchType;
+            if (isHierarchicalLayout(lgraph)) {
+                greedySwitchType =
+                        lgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_HIERARCHICAL_TYPE);
+            } else {
+                greedySwitchType = lgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE);
+            }
             IntermediateProcessorStrategy internalGreedyType = (greedySwitchType == GreedySwitchType.ONE_SIDED)
-                        ? IntermediateProcessorStrategy.ONE_SIDED_GREEDY_SWITCH
-                        : IntermediateProcessorStrategy.TWO_SIDED_GREEDY_SWITCH;
+                    ? IntermediateProcessorStrategy.ONE_SIDED_GREEDY_SWITCH
+                    : IntermediateProcessorStrategy.TWO_SIDED_GREEDY_SWITCH;
             configuration.addBefore(LayeredPhases.P4_NODE_PLACEMENT, internalGreedyType);
         }
 
@@ -295,19 +312,45 @@ final class GraphConfigurator {
         default: // OFF
         }
         
+        if (lgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER) != OrderingStrategy.NONE) {
+            configuration
+                .addBefore(LayeredPhases.P3_NODE_ORDERING, IntermediateProcessorStrategy.SORT_BY_INPUT_ORDER_OF_MODEL);
+        }
+        
         return configuration;
     }
     
     /**
      * Greedy switch may be activated if the following holds.
+     * 
+     * <h3>Hierarchical layout</h3>
+     * <ol>
+     *  <li>the {@link LayeredOptions#CROSSING_MINIMIZATION_GREEDY_SWITCH_HIERARCHICAL_TYPE} is set to something 
+     *      different than OFF</li>
+     * </ol>
+     * 
+     * <h3>Non-hierarchical layout</h3>
      * <ol>
      *  <li>no interactive crossing minimization is performed</li>
-     *  <li>the greedy switch type is set to something different than OFF</li>
+     *  <li>the {@link LayeredOptions#CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE} option is set to something different 
+     *      than OFF</li>
      *  <li>the activationThreshold is larger than or equal to the graph's number of nodes (or '0')</li>
      * </ol>
      * @return {@code true} if above condition holds, {@code false} otherwise.
      */
     public static boolean activateGreedySwitchFor(final LGraph lgraph) {
+        
+        // First, check the hierarchical case
+        if (isHierarchicalLayout(lgraph)) {
+            // Note that we only activate it for the root in the hierarchical case and rely on
+            // ElkLayered#reviewAndCorrectHierarchicalProcessors(...) to properly set it for the whole hierarchy.
+            // Also, interactive crossing minimization is not allowed/applicable for hierarchical layout
+            // (and thus doesn't have to be checked here).
+            return lgraph.getParentNode() == null && lgraph.getProperty(
+                    LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_HIERARCHICAL_TYPE) != GreedySwitchType.OFF;
+        }
+
+        // Second, if not hierarchical, check the slightly more complex non-hierarchical case
         GreedySwitchType greedySwitchType = lgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_GREEDY_SWITCH_TYPE);
         boolean interactiveCrossMin =
                 lgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_SEMI_INTERACTIVE) 
@@ -321,4 +364,9 @@ final class GraphConfigurator {
                 && greedySwitchType != GreedySwitchType.OFF 
                 && (activationThreshold == 0 || activationThreshold > graphSize);
     }
+
+    private static boolean isHierarchicalLayout(final LGraph lgraph) {
+        return lgraph.getProperty(LayeredOptions.HIERARCHY_HANDLING) == HierarchyHandling.INCLUDE_CHILDREN;
+    }
+
 }

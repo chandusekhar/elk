@@ -14,17 +14,13 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.elk.core.IGraphLayoutEngine;
 import org.eclipse.elk.core.LayoutConfigurator;
-import org.eclipse.elk.core.LayoutConfigurator.IOptionFilter;
 import org.eclipse.elk.core.data.LayoutAlgorithmResolver;
-import org.eclipse.elk.core.data.LayoutMetaDataService;
-import org.eclipse.elk.core.data.LayoutOptionData;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.PortConstraints;
 import org.eclipse.elk.core.options.SizeConstraint;
@@ -38,11 +34,8 @@ import org.eclipse.elk.core.util.Maybe;
 import org.eclipse.elk.core.util.Pair;
 import org.eclipse.elk.core.validation.GraphValidator;
 import org.eclipse.elk.core.validation.LayoutOptionValidator;
-import org.eclipse.elk.graph.ElkEdge;
 import org.eclipse.elk.graph.ElkGraphElement;
-import org.eclipse.elk.graph.ElkLabel;
 import org.eclipse.elk.graph.ElkNode;
-import org.eclipse.elk.graph.ElkPort;
 import org.eclipse.elk.graph.properties.IProperty;
 import org.eclipse.elk.graph.properties.IPropertyHolder;
 import org.eclipse.elk.graph.properties.MapPropertyHolder;
@@ -105,7 +98,7 @@ public class DiagramLayoutEngine {
      */
     public static final class Parameters {
         
-        private List<LayoutConfigurator> configurators = new LinkedList<LayoutConfigurator>();
+        private List<IGraphElementVisitor> configurators = new LinkedList<IGraphElementVisitor>();
         private MapPropertyHolder globalSettings = new MapPropertyHolder();
         private boolean overrideDiagramConfig = true;
         
@@ -135,9 +128,11 @@ public class DiagramLayoutEngine {
          * 
          * @return the given configurator
          */
-        public LayoutConfigurator addLayoutRun(final LayoutConfigurator configurator) {
+        public IGraphElementVisitor addLayoutRun(final IGraphElementVisitor configurator) {
             configurators.add(configurator);
-            configurator.addFilter(OPTION_TARGET_FILTER);
+            if (configurator instanceof LayoutConfigurator) {
+                ((LayoutConfigurator) configurator).addFilter(LayoutConfigurator.OPTION_TARGET_FILTER);
+            }
             return configurator;
         }
         
@@ -145,7 +140,7 @@ public class DiagramLayoutEngine {
          * Convenience method for {@code addLayout(new LayoutConfigurator())}.
          */
         public LayoutConfigurator addLayoutRun() {
-            return addLayoutRun(new LayoutConfigurator());
+            return (LayoutConfigurator) addLayoutRun(new LayoutConfigurator());
         }
     }
     
@@ -155,34 +150,7 @@ public class DiagramLayoutEngine {
     public static final String PREF_DEBUG_STORE = "elk.debug.store";
     /** preference identifier for execution time measurement. */
     public static final String PREF_DEBUG_EXEC_TIME = "elk.debug.exectime";
-    
-    /**
-     * Filter for {@link LayoutConfigurator} that checks for each option whether its configured targets
-     * match the input element.
-     */
-    public static final IOptionFilter OPTION_TARGET_FILTER =
-        (e, property) -> {
-            LayoutOptionData optionData = LayoutMetaDataService.getInstance().getOptionData(property.getId());
-            if (optionData != null) {
-                Set<LayoutOptionData.Target> targets = optionData.getTargets();
-                if (e instanceof ElkNode) {
-                    if (!((ElkNode) e).isHierarchical()) {
-                        return targets.contains(LayoutOptionData.Target.NODES);
-                    } else {
-                        return targets.contains(LayoutOptionData.Target.NODES)
-                                || targets.contains(LayoutOptionData.Target.PARENTS);
-                    }
-                } else if (e instanceof ElkEdge) {
-                    return targets.contains(LayoutOptionData.Target.EDGES);
-                } else if (e instanceof ElkPort) {
-                    return targets.contains(LayoutOptionData.Target.PORTS);
-                } else if (e instanceof ElkLabel) {
-                    return targets.contains(LayoutOptionData.Target.LABELS);
-                }
-            }
-            return true;
-        };
-    
+        
     /**
      * Property for the diagram layout connector used for automatic layout. This property is
      * attached to layout mappings created by the {@code layout} methods.
@@ -550,22 +518,25 @@ public class DiagramLayoutEngine {
         if (params.configurators.isEmpty()) {
             params.addLayoutRun(diagramConfig);
         } else {
-            ListIterator<LayoutConfigurator> configIter = params.configurators.listIterator();
+            ListIterator<IGraphElementVisitor> configIter = params.configurators.listIterator();
             while (configIter.hasNext()) {
                 boolean isFirstConfig = !configIter.hasPrevious();
-                LayoutConfigurator setupConfig = configIter.next();
-                if (params.overrideDiagramConfig) {
-                    if (isFirstConfig || setupConfig.isClearLayout()) {
-                        LayoutConfigurator newConfig;
-                        if (configIter.hasNext()) {
-                            newConfig = new LayoutConfigurator().overrideWith(diagramConfig);
-                        } else {
-                            newConfig = diagramConfig;
+                IGraphElementVisitor setupConfig = configIter.next();
+                if (setupConfig instanceof LayoutConfigurator) {
+                    LayoutConfigurator layoutConfigurator = (LayoutConfigurator) setupConfig;
+                    if (params.overrideDiagramConfig) {
+                        if (isFirstConfig || layoutConfigurator.isClearLayout()) {
+                            LayoutConfigurator newConfig;
+                            if (configIter.hasNext()) {
+                                newConfig = new LayoutConfigurator().overrideWith(diagramConfig);
+                            } else {
+                                newConfig = diagramConfig;
+                            }
+                            configIter.set(newConfig.overrideWith(layoutConfigurator));
                         }
-                        configIter.set(newConfig.overrideWith(setupConfig));
+                    } else {
+                        layoutConfigurator.overrideWith(diagramConfig);
                     }
-                } else {
-                    setupConfig.overrideWith(diagramConfig);
                 }
             }
         }
@@ -595,14 +566,16 @@ public class DiagramLayoutEngine {
                     ElkNode parent = node.getParent();
                     for (ElkNode child : parent.getChildren()) {
                         if (child != node) {
-                            for (LayoutConfigurator c : params.configurators) {
-                                IPropertyHolder childConfig = c.configure(child);
-                                // Do not layout the content of the child node
-                                childConfig.setProperty(CoreOptions.NO_LAYOUT, true);
-                                // Do not change the size of the child node
-                                childConfig.setProperty(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.fixed());
-                                // Do not move the ports of the child node
-                                childConfig.setProperty(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_POS);
+                            for (IGraphElementVisitor c : params.configurators) {
+                                if (c instanceof LayoutConfigurator) {
+                                    IPropertyHolder childConfig = ((LayoutConfigurator) c).configure(child);
+                                    // Do not layout the content of the child node
+                                    childConfig.setProperty(CoreOptions.NO_LAYOUT, true);
+                                    // Do not change the size of the child node
+                                    childConfig.setProperty(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.fixed());
+                                    // Do not move the ports of the child node
+                                    childConfig.setProperty(CoreOptions.PORT_CONSTRAINTS, PortConstraints.FIXED_POS);
+                                }
                             }
                         }
                     }
@@ -659,7 +632,7 @@ public class DiagramLayoutEngine {
         } else {
             // Perform layout multiple times with different configurations
             progressMonitor.begin("Diagram layout engine", params.configurators.size());
-            ListIterator<LayoutConfigurator> configIter = params.configurators.listIterator();
+            ListIterator<IGraphElementVisitor> configIter = params.configurators.listIterator();
             while (configIter.hasNext()) {
                 visitors.addFirst(configIter.next());
                 IGraphElementVisitor[] visitorsArray = visitors.toArray(new IGraphElementVisitor[visitors.size()]);
@@ -674,10 +647,13 @@ public class DiagramLayoutEngine {
                         mapping.getLayoutGraph().getProperty(LayoutConfigurator.ADD_LAYOUT_CONFIG);
                 
                 if (addConfig != null) {
-                    ListIterator<LayoutConfigurator> configIter2 = params.configurators.listIterator(
+                    ListIterator<IGraphElementVisitor> configIter2 = params.configurators.listIterator(
                             configIter.nextIndex());
                     while (configIter2.hasNext()) {
-                        configIter2.next().overrideWith(addConfig);
+                        IGraphElementVisitor c = configIter2.next();
+                        if (c instanceof LayoutConfigurator) {
+                            ((LayoutConfigurator) c).overrideWith(addConfig);
+                        }
                     }
                 }
             }

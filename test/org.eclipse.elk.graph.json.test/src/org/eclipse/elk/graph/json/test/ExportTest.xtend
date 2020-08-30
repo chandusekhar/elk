@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Kiel University and others.
+ * Copyright (c) 2017, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -9,13 +9,13 @@
  *******************************************************************************/
 package org.eclipse.elk.graph.json.test
 
-import org.eclipse.elk.core.data.LayoutMetaDataService
+import org.eclipse.elk.alg.test.PlainJavaInitialization
 import org.eclipse.elk.core.options.CoreOptions
 import org.eclipse.elk.core.options.Direction
 import org.eclipse.elk.graph.json.ElkGraphJson
 import org.eclipse.elk.graph.json.JsonExporter
 import org.eclipse.elk.graph.properties.Property
-import org.junit.Before
+import org.junit.BeforeClass
 import org.junit.Test
 
 import static org.eclipse.elk.graph.util.ElkGraphUtil.*
@@ -26,9 +26,9 @@ import static org.junit.Assert.*
  */
 class ExportTest {
  
-  @Before
-  def void setup() {
-      LayoutMetaDataService.instance
+  @BeforeClass
+  static def void init() {
+    PlainJavaInitialization.initializePlainJavaLayout
   }
   
   @Test
@@ -86,4 +86,27 @@ class ExportTest {
       assertTrue(json2.contains("direction"))
       assertTrue(json2.contains("foo.bar.dummy"))
   }
+  
+  @Test
+  def void dontExportEmptyJunctionPoints() {
+      val graph = createGraph
+      val n1 = createNode(graph)
+      val n2 = createNode(graph)
+      createSimpleEdge(n1, n2)
+      
+      val json = ElkGraphJson.forGraph(graph)
+                             .omitLayout(false)
+                             .toJson
+
+      assertFalse(json.contains("layoutOptions"))
+      assertFalse(json.contains("junctionPoints"))
+  }
+  
+  @Test
+  def void copeWithNullProperty() {
+      val graph = createGraph
+      graph.setProperty(CoreOptions.RANDOM_SEED, 4) // arbitrary property
+      graph.setProperty(null, 3) // This shouldn't raise a nullpointer
+  }
+  
 }

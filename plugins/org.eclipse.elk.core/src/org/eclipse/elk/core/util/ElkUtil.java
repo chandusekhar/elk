@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2019 Kiel University and others.
+ * Copyright (c) 2008, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -21,6 +21,7 @@ import java.util.regex.Pattern;
 
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
+import org.eclipse.elk.core.options.ContentAlignment;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.Direction;
 import org.eclipse.elk.core.options.EdgeLabelPlacement;
@@ -53,9 +54,6 @@ import com.google.common.collect.Maps;
 
 /**
  * Utility methods for layout-related things.
- *
- * @author msp
- * @author uru
  */
 public final class ElkUtil {
 
@@ -248,31 +246,12 @@ public final class ElkUtil {
      */
     public static KVector resizeNode(final ElkNode node, final double newWidth, final double newHeight,
             final boolean movePorts, final boolean moveLabels) {
-
-        Set<SizeConstraint> sizeConstraint = node.getProperty(CoreOptions.NODE_SIZE_CONSTRAINTS);
-
+        
         KVector oldSize = new KVector(node.getWidth(), node.getHeight());
-        KVector newSize;
-
-        // Calculate the new size
-        if (sizeConstraint.contains(SizeConstraint.MINIMUM_SIZE)) {
-            Set<SizeOptions> sizeOptions = node.getProperty(CoreOptions.NODE_SIZE_OPTIONS);
-            KVector minSize = node.getProperty(CoreOptions.NODE_SIZE_MINIMUM);
-
-            // If minimum width or height are not set, maybe default to default values
-            if (sizeOptions.contains(SizeOptions.DEFAULT_MINIMUM_SIZE)) {
-                if (minSize.x <= 0) {
-                    minSize.x = DEFAULT_MIN_WIDTH;
-                }
-                if (minSize.y <= 0) {
-                    minSize.y = DEFAULT_MIN_HEIGHT;
-                }
-            }
-
-            newSize = new KVector(Math.max(newWidth, minSize.x), Math.max(newHeight, minSize.y));
-        } else {
-            newSize = new KVector(newWidth, newHeight);
-        }
+        
+        KVector newSize = effectiveMinSizeConstraintFor(node);
+        newSize.x = Math.max(newSize.x, newWidth);
+        newSize.y = Math.max(newSize.y, newHeight);
 
         double widthRatio = newSize.x / oldSize.x;
         double heightRatio = newSize.y / oldSize.y;
@@ -350,6 +329,37 @@ public final class ElkUtil {
         node.setProperty(CoreOptions.NODE_SIZE_CONSTRAINTS, SizeConstraint.fixed());
 
         return new KVector(widthRatio, heightRatio);
+    }
+    
+    /**
+     * Returns the minimum size of the node according to the {@link CoreOptions#NODE_SIZE_MINIMUM} constraint. If that
+     * constraint is not set, the size returned by this method will be {@code (0, 0)}.
+     * 
+     * @param node the node whose minimum size to compute.
+     * @return the minimum size.
+     */
+    public static KVector effectiveMinSizeConstraintFor(final ElkNode node) {
+        Set<SizeConstraint> sizeConstraint = node.getProperty(CoreOptions.NODE_SIZE_CONSTRAINTS);
+        
+        if (sizeConstraint.contains(SizeConstraint.MINIMUM_SIZE)) {
+            Set<SizeOptions> sizeOptions = node.getProperty(CoreOptions.NODE_SIZE_OPTIONS);
+            KVector minSize = node.getProperty(CoreOptions.NODE_SIZE_MINIMUM);
+
+            // If minimum width or height are not set, maybe default to default values
+            if (sizeOptions.contains(SizeOptions.DEFAULT_MINIMUM_SIZE)) {
+                if (minSize.x <= 0) {
+                    minSize.x = DEFAULT_MIN_WIDTH;
+                }
+                if (minSize.y <= 0) {
+                    minSize.y = DEFAULT_MIN_HEIGHT;
+                }
+            }
+
+            return minSize;
+            
+        } else {
+            return new KVector();
+        }
     }
 
     /**
@@ -588,6 +598,40 @@ public final class ElkUtil {
 
         // Translate target point
         section.setEndLocation(section.getEndX() + xoffset, section.getEndY() + yoffset);
+    }
+    
+    /**
+     * Translates the contents of the given node based on the content alignment property without resizing the node itself.
+     * 
+     * @param parent The parent node.
+     * @param newSize The new size.
+     * @param oldSize The old size.
+     */
+    public static void translate(final ElkNode parent, final KVector newSize, final KVector oldSize) {
+        Set<ContentAlignment> contentAlignment =
+                parent.getProperty(CoreOptions.CONTENT_ALIGNMENT);
+        double xTranslate = 0;
+        double yTranslate = 0;
+        
+        // Horizontal alignment
+        if (newSize.x > oldSize.x) {
+            if (contentAlignment.contains(ContentAlignment.H_CENTER)) {
+                xTranslate = (newSize.x - oldSize.x) / 2f;
+            } else if (contentAlignment.contains(ContentAlignment.H_RIGHT)) {
+                xTranslate = newSize.x - oldSize.x;
+            }
+        }
+
+        // Vertical alignment
+        if (newSize.y > oldSize.y) {
+            if (contentAlignment.contains(ContentAlignment.V_CENTER)) {
+                yTranslate = (newSize.y - oldSize.y) / 2f;
+            } else if (contentAlignment.contains(ContentAlignment.V_BOTTOM)) {
+                yTranslate = newSize.y - oldSize.y;
+            }
+        }
+
+        translate(parent, xTranslate, yTranslate);
     }
 
 
@@ -848,8 +892,7 @@ public final class ElkUtil {
      *            an edge of a graph
      */
     public static void configureWithDefaultValues(final ElkEdge edge) {
-        EdgeLabelPlacement elp = edge.getProperty(CoreOptions.EDGE_LABELS_PLACEMENT);
-        if (elp == EdgeLabelPlacement.UNDEFINED) {
+        if (!edge.hasProperty(CoreOptions.EDGE_LABELS_PLACEMENT)) {
             edge.setProperty(CoreOptions.EDGE_LABELS_PLACEMENT, EdgeLabelPlacement.CENTER);
         }
     }

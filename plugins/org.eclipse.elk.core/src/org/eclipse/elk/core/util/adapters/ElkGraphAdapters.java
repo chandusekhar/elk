@@ -70,7 +70,7 @@ public final class ElkGraphAdapters {
      * @return an {@link ElkNodeAdapter} for the passed node.
      */
     public static ElkNodeAdapter adaptSingleNode(final ElkNode node) {
-        return new ElkNodeAdapter(null, node);
+        return new ElkNodeAdapter(node.getParent() == null ? null : adapt(node.getParent()), node);
     }
 
     /**
@@ -329,10 +329,17 @@ public final class ElkGraphAdapters {
             super(label);
         }
         
-
+        
+        @Override
         public LabelSide getSide() {
             return element.getProperty(LabelSide.LABEL_SIDE);
         }
+        
+        @Override
+        public String getText() {
+            return element.getText();
+        }
+        
     }
 
     /**

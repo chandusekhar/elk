@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2016 Kiel University and others.
+ * Copyright (c) 2016, 2020 Kiel University and others.
  * 
  * This program and the accompanying materials are made available under the
  * terms of the Eclipse Public License 2.0 which is available at
@@ -31,19 +31,18 @@ import org.eclipse.elk.core.util.IElkProgressMonitor;
  *   <dt>Slots:</dt>
  *     <dd>Before phase 3.</dd>
  *   <dt>Same-slot dependencies:</dt>
- *     <dd>None.</dd>
+ *     <dd>{@link NodePromotion}</dd>
+ *     <dd>{@link LayerConstraintProcessor}</dd>
  * </dl>
  *
  * @see PartitionPreprocessor
+ * @see PartitionMidprocessor
  */
 public class PartitionPostprocessor implements ILayoutProcessor<LGraph> {
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public void process(final LGraph lGraph, final IElkProgressMonitor monitor) {
-        monitor.begin("Removing partition constraint edges", 1);
+        monitor.begin("Partition postprocessing", 1);
         // Remove all added ports and edges.
         for (Layer layer : lGraph) {
             for (LNode node : layer) {
